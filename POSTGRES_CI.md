@@ -56,13 +56,22 @@ env:
 
 ## 结果证据
 
-`bash -n scripts/push-postgres-schema.sh` 通过。workflow 里同时存在原来的 `test` job 和名为 `postgres` 的新 job。
+`bash -n scripts/push-postgres-schema.sh` 通过。把 `DATABASE_URL` 设成 `file:./dev.db` 再跑脚本，脚本拒绝执行并退出码 1，输出 `Refusing to push because DATABASE_URL is not a PostgreSQL URL`。
 
-GitHub Actions 的真实运行结果在推送这一阶段之后补进下一节。
+GitHub Actions 运行 [42850349762](https://github.com/bob1525/Hacker-News-build/actions/runs/42850349762) 结论 success，提交 `64ad88dfc31dfb09efbef45d594fc37a3ad94587`：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `postgres` [129949132694](https://github.com/bob1525/Hacker-News-build/actions/runs/42850349762/job/129949132694) | success | 2026-11-10 16:01:16Z 到 16:02:38Z，约 1 分 22 秒 |
+| `test` [129949133118](https://github.com/bob1525/Hacker-News-build/actions/runs/42850349762/job/129949133118) | success | 同一次运行，约 2 分 12 秒 |
+
+`postgres` job 的日志有 `PostgreSQL schema push and probe write succeeded`，随后单元测试是 21 个文件、124 个测试通过。`test` job 同样是 124 个单元测试通过，端到端 `23 passed`。本机没有 Docker 或 `psql`，没有另做一份本地 PostgreSQL。
+
+日志里的 Node.js 20 弃用提示和 Ubuntu 26 迁移提示没有让 job 失败。
 
 ## CI 运行
 
-待补。
+上面这次 push 运行就是本阶段的证据。两个 job 都是 success。
 
 ## 当前限制与后续改进
 
