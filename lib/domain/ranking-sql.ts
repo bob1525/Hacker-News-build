@@ -106,6 +106,52 @@ export async function pageHotPostIds(
   };
 }
 
+/** Newest order in SQL: createdAt descending, then id descending. */
+export async function pageNewestPostIds(
+  db: PrismaClient,
+  options: {
+    page: number;
+    pageSize: number;
+    filter?: FeedFilter;
+    authorIds?: string[];
+    ids?: string[];
+  },
+): Promise<HotPage> {
+  const size = Number.isFinite(options.pageSize) && options.pageSize > 0 ? Math.floor(options.pageSize) : 1;
+  const page = Number.isInteger(options.page) && options.page > 0 ? options.page : 1;
+  const offset = (page - 1) * size;
+  if ((options.authorIds && options.authorIds.length === 0) || (options.ids && options.ids.length === 0)) {
+    return { ids: [], page, hasMore: false, total: 0 };
+  }
+  const dialect = sqlDialect();
+  const where = hotWhere(options, dialect);
+  const quoted = dialect === "postgresql";
+  const table = quoted ? '"Post"' : "Post";
+  const idCol = quoted ? 'p."id"' : "p.id";
+  const createdCol = quoted ? 'p."createdAt"' : "p.createdAt";
+  const limit = quoted ? `$${where.nextIndex}` : "?";
+  const offsetSql = quoted ? `$${where.nextIndex + 1}` : "?";
+  const countExpr = quoted ? "COUNT(*)::int" : "COUNT(*)";
+  const totalRows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+    `SELECT ${countExpr} AS total FROM ${table} p WHERE ${where.sql}`,
+    ...where.params,
+  );
+  const total = Number(totalRows[0]?.total ?? 0);
+  if (offset >= total) return { ids: [], page, hasMore: false, total };
+  const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT ${idCol} AS id FROM ${table} p WHERE ${where.sql} ORDER BY ${createdCol} DESC, ${idCol} DESC LIMIT ${limit} OFFSET ${offsetSql}`,
+    ...where.params,
+    size,
+    offset,
+  );
+  return {
+    ids: rows.map((row) => row.id),
+    page,
+    hasMore: offset + size < total,
+    total,
+  };
+}
+
 /**
  * PostgreSQL stores DateTime as timestamp(3), has power(), and quotes identifiers.
  * The score is the same (points - 1) / (ageHours + 2) ^ 1.8 expression as the

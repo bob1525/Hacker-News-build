@@ -1,6 +1,6 @@
 # 热度排序的 SQL 后端
 
-第五轮阶段 4 的自检。默认仍是内存排序。`RANKING_BACKEND=sql` 时，首页、Ask、Show 和 `/following` 的热度顺序改由 SQL 计算，分页规则与 `paginate` 相同。搜索和 Newest 仍在内存里排序。
+第五轮阶段 4 的自检。默认仍是内存排序。`RANKING_BACKEND=sql` 时，首页、Ask、Show 和 `/following` 的热度顺序改由 SQL 计算，分页规则与 `paginate` 相同。第六轮起 Newest 也走 SQL，见 `RANKING_EXTEND.md`。搜索仍在内存里排序。
 
 ## 具体做了什么
 

@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { sortByHot } from "@/lib/domain/ranking";
-import { pageHotPostIds } from "@/lib/domain/ranking-sql";
+import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
+import { pageHotPostIds, pageNewestPostIds } from "@/lib/domain/ranking-sql";
 import { rankingBackend } from "@/lib/ranking-backend";
 import { prepareTestDatabase } from "@/tests/helpers/database";
 const now = new Date("2026-11-10T12:00:00.000Z");
@@ -107,6 +107,29 @@ describe("sql hot ranking", () => {
     expect(pages[2]?.hasMore).toBe(false);
     expect(pages[0]?.total).toBe(5);
     expect(pages[2]?.page).toBe(3);
+  });
+
+  it("orders newest posts by createdAt descending", async () => {
+    const selected = [1, 2, 3, 4, 5].map((age) => ids[`page${age}`]);
+    const ranked = await pageNewestPostIds(db, { page: 1, pageSize: 10, ids: selected });
+    const rows = await db.post.findMany({ where: { id: { in: selected } } });
+    expect(ranked.ids).toEqual(sortByNewest(rows).map((row) => row.id));
+    expect(ranked.ids[0]).toBe(ids.page1);
+    expect(ranked.total).toBe(5);
+  });
+
+  it("pages newest posts and breaks equal timestamps by id descending", async () => {
+    const selected = [ids.tieA, ids.tieB];
+    const ranked = await pageNewestPostIds(db, { page: 1, pageSize: 10, ids: selected });
+    expect(ranked.ids).toEqual([...selected].sort((a, b) => b.localeCompare(a)));
+    const pages = await Promise.all(
+      [1, 2].map((page) => pageNewestPostIds(db, { page, pageSize: 1, ids: selected })),
+    );
+    expect(pages.flatMap((page) => page.ids)).toEqual(ranked.ids);
+    expect(pages[0]?.hasMore).toBe(true);
+    expect(pages[1]?.hasMore).toBe(false);
+    expect(pages[0]?.total).toBe(2);
+    expect(pages[1]?.page).toBe(2);
   });
 
   it("selects memory by default and sql when asked", () => {

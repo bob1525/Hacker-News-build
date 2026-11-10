@@ -4,7 +4,7 @@ import { PAGE_SIZE } from "@/lib/config";
 import { canDeleteComment, canEditComment, commentDisplayText } from "@/lib/domain/comment-moderation";
 import { buildCommentTree, type ThreadNode } from "@/lib/domain/comments";
 import { paginate } from "@/lib/domain/pagination";
-import { pageHotPostIds } from "@/lib/domain/ranking-sql";
+import { pageHotPostIds, pageNewestPostIds } from "@/lib/domain/ranking-sql";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
 import { rankingBackend } from "@/lib/ranking-backend";
 import { sortSearchResults, tokenize } from "@/lib/domain/search";
@@ -105,32 +105,40 @@ export async function getFeed(options: {
   }
 
   const now = new Date();
-  if (!query && options.sort !== "newest" && rankingBackend() === "sql") {
-    const hot = await pageHotPostIds(prisma, {
-      now,
-      page,
-      pageSize: PAGE_SIZE,
-      filter,
-      authorIds: options.authorIds,
-    });
-    if (hot.ids.length === 0) {
-      return { items: [], page: hot.page, hasMore: hot.hasMore, total: hot.total };
+  if (!query && rankingBackend() === "sql") {
+    const ranked =
+      options.sort === "newest"
+        ? await pageNewestPostIds(prisma, {
+            page,
+            pageSize: PAGE_SIZE,
+            filter,
+            authorIds: options.authorIds,
+          })
+        : await pageHotPostIds(prisma, {
+            now,
+            page,
+            pageSize: PAGE_SIZE,
+            filter,
+            authorIds: options.authorIds,
+          });
+    if (ranked.ids.length === 0) {
+      return { items: [], page: ranked.page, hasMore: ranked.hasMore, total: ranked.total };
     }
-    const hotRows = await prisma.post.findMany({
-      where: { id: { in: hot.ids } },
+    const rankedRows = await prisma.post.findMany({
+      where: { id: { in: ranked.ids } },
       include: postInclude(viewerId),
     });
-    const byId = new Map(hotRows.map((row) => [row.id, row]));
-    const items = hot.ids.map((id) => {
+    const byId = new Map(rankedRows.map((row) => [row.id, row]));
+    const items = ranked.ids.map((id) => {
       const row = byId.get(id);
       if (!row) throw new Error(`Ranked post ${id} was not loaded.`);
       return toCard(toRecord(row));
     });
     return {
       items,
-      page: hot.page,
-      hasMore: hot.hasMore,
-      total: hot.total,
+      page: ranked.page,
+      hasMore: ranked.hasMore,
+      total: ranked.total,
     };
   }
 
