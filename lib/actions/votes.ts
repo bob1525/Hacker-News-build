@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { enforceRateLimit } from "@/lib/limits";
+import { applyCommentVote, applyPostVote } from "@/lib/voting";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { ActionResult } from "@/lib/types";
@@ -32,19 +33,9 @@ export async function votePost(postId: string): Promise<ActionResult<{ voted: bo
     if (!post) return { ok: false, error: "That post no longer exists." };
     if (post.authorId === user.id) return { ok: false, error: "You can't vote on your own post." };
 
-    const existing = await prisma.postVote.findUnique({
-      where: { userId_postId: { userId: user.id, postId } },
-    });
-
-    if (existing) {
-      await prisma.postVote.delete({ where: { userId_postId: { userId: user.id, postId } } });
-    } else {
-      await prisma.postVote.create({ data: { userId: user.id, postId } });
-    }
-
-    const points = await prisma.postVote.count({ where: { postId } });
+    const result = await applyPostVote(prisma, user.id, post.id);
     refreshPost(post.id, post.author.username);
-    return { ok: true, data: { voted: !existing, points } };
+    return { ok: true, data: result };
   } catch (error) {
     unstable_rethrow(error);
     return { ok: false, error: "Could not record the vote. Please try again." };
@@ -73,21 +64,11 @@ export async function voteComment(commentId: string): Promise<ActionResult<{ vot
     if (comment.deletedAt) return { ok: false, error: "You can't vote on a deleted comment." };
     if (comment.authorId === user.id) return { ok: false, error: "You can't vote on your own comment." };
 
-    const existing = await prisma.commentVote.findUnique({
-      where: { userId_commentId: { userId: user.id, commentId } },
-    });
-
-    if (existing) {
-      await prisma.commentVote.delete({ where: { userId_commentId: { userId: user.id, commentId } } });
-    } else {
-      await prisma.commentVote.create({ data: { userId: user.id, commentId } });
-    }
-
-    const points = await prisma.commentVote.count({ where: { commentId } });
+    const result = await applyCommentVote(prisma, user.id, comment.id);
     revalidatePath(`/item/${comment.postId}`);
     revalidatePath("/comments");
     revalidatePath(`/user/${comment.author.username}`);
-    return { ok: true, data: { voted: !existing, points } };
+    return { ok: true, data: result };
   } catch (error) {
     unstable_rethrow(error);
     return { ok: false, error: "Could not record the vote. Please try again." };
