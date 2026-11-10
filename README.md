@@ -155,6 +155,14 @@ npx tsx scripts/scale-bench.ts
 - [RANKING_SCALABILITY.md](RANKING_SCALABILITY.md)
 - [FOURTH_ROUND_AUDIT.md](FOURTH_ROUND_AUDIT.md)
 
+第五轮补充了历史清理命令、Redis 速率限制、PostgreSQL CI 和 SQL 热度排序：
+
+- [HISTORY_CLEANUP_V2.md](HISTORY_CLEANUP_V2.md)
+- [RATE_LIMIT_REDIS.md](RATE_LIMIT_REDIS.md)
+- [POSTGRES_CI.md](POSTGRES_CI.md)
+- [RANKING_DB.md](RANKING_DB.md)
+- [FIFTH_ROUND_AUDIT.md](FIFTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
