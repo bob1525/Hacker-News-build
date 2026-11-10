@@ -133,6 +133,14 @@ npx tsx scripts/scale-bench.ts
 - [FINAL_AUDIT.md](FINAL_AUDIT.md)
 - [SECURITY_CLEANUP.md](SECURITY_CLEANUP.md)
 
+第四轮补充了密钥历史、速率限制存储、数据库迁移和热度排序的说明：
+
+- [HISTORY_CLEANUP.md](HISTORY_CLEANUP.md)
+- [RATE_LIMIT_PERSISTENCE.md](RATE_LIMIT_PERSISTENCE.md)
+- [DB_MIGRATION.md](DB_MIGRATION.md)
+- [RANKING_SCALABILITY.md](RANKING_SCALABILITY.md)
+- [FOURTH_ROUND_AUDIT.md](FOURTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
