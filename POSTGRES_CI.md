@@ -2,6 +2,8 @@
 
 第五轮阶段 3 的自检。在原有 SQLite job 旁边增加一个 PostgreSQL job。默认测试路径没有改。现有 SQLite 迁移不能在 PostgreSQL 上重放，所以 CI 用 `prisma db push` 作为临时方案。
 
+第六轮阶段 2 起，这个 job 会生成 PostgreSQL 客户端并让单元测试连到 PostgreSQL。下面记录的是第五轮当时的做法。现行步骤见 `POSTGRES_TESTS.md`。
+
 ## 具体做了什么
 
 - `.github/workflows/ci.yml` 保留原来的 `test` job：lint、typecheck、`npm test`、Playwright，数据库仍是 SQLite。

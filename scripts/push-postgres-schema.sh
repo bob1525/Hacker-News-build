@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Apply the current Prisma schema to PostgreSQL without touching the SQLite migrations.
-# The checked-in migrations are SQLite SQL, so this uses `prisma db push` on a copy
+# Generate a PostgreSQL Prisma client and apply the current schema.
+# Checked-in migrations are SQLite SQL, so this uses `prisma db push` on a copy
 # whose provider is postgresql. It does not rewrite prisma/schema.prisma.
 set -euo pipefail
 
@@ -18,22 +18,13 @@ case "$DATABASE_URL" in
 esac
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-schema="$(mktemp)"
-trap 'rm -f "$schema"' EXIT
-cp "$root/prisma/schema.prisma" "$schema"
-sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$schema"
-
-if ! grep -q 'provider = "postgresql"' "$schema"; then
-  echo "Failed to switch the datasource provider to postgresql" >&2
-  exit 1
-fi
-
-npx prisma db push --schema "$schema" --skip-generate --accept-data-loss
-npx prisma db execute --schema "$schema" --stdin <<'SQL'
+bash "$root/scripts/with-postgres-schema.sh" prisma generate
+bash "$root/scripts/with-postgres-schema.sh" prisma db push --skip-generate --accept-data-loss
+bash "$root/scripts/with-postgres-schema.sh" prisma db execute --stdin <<'SQL'
 INSERT INTO "User" ("id", "username", "email", "passwordHash", "about", "createdAt")
 VALUES ('ci-probe', 'ci-probe', 'ci-probe@example.com', 'x', '', CURRENT_TIMESTAMP);
 SQL
-npx prisma db execute --schema "$schema" --stdin <<'SQL'
+bash "$root/scripts/with-postgres-schema.sh" prisma db execute --stdin <<'SQL'
 DELETE FROM "User" WHERE "id" = 'ci-probe';
 SQL
 echo "PostgreSQL schema push and probe write succeeded"

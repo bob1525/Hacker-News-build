@@ -56,7 +56,7 @@ jobs:
           AUTH_SECRET: ci-auth-secret-not-for-production-use-32
 
   # Separate from `test`. The default path stays the SQLite job above.
-  # This job only checks that the Prisma schema can be created on PostgreSQL.
+  # This job generates a PostgreSQL Prisma client and runs the unit tests on it.
   # Checked-in migrations are SQLite SQL, so the push uses a temporary copy.
   postgres:
     name: postgres
@@ -92,11 +92,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Push the schema to PostgreSQL
+      - name: Generate the PostgreSQL client and push the schema
         run: bash scripts/push-postgres-schema.sh
 
       - name: Unit tests
         run: npm test
         env:
-          DATABASE_URL: file:./prisma/ci-unit.db
+          DATABASE_URL: postgresql://hn:hn@localhost:5432/hackernews?schema=public
           AUTH_SECRET: ci-auth-secret-not-for-production-use-32

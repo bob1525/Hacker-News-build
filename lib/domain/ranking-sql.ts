@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { sqlDialect, type SqlDialect } from "@/lib/sql-dialect";
 import type { FeedFilter } from "@/lib/types";
 
 const NEWTON_STEPS = 20;
@@ -34,6 +35,7 @@ export async function pageHotPostIds(
   if ((options.authorIds && options.authorIds.length === 0) || (options.ids && options.ids.length === 0)) {
     return { ids: [], page, hasMore: false, total: 0 };
   }
+  if (sqlDialect() === "postgresql") return pageHotPostIdsPostgres(db, options, size, page, offset);
   const where = hotWhere(options);
   const nowMs = options.now.getTime();
 
@@ -104,21 +106,98 @@ export async function pageHotPostIds(
   };
 }
 
-function hotWhere(options: { filter?: FeedFilter; authorIds?: string[]; ids?: string[] }): {
+/**
+ * PostgreSQL stores DateTime as timestamp(3), has power(), and quotes identifiers.
+ * The score is the same (points - 1) / (ageHours + 2) ^ 1.8 expression as the
+ * memory sort. SQLite keeps the Newton script above because its Prisma build
+ * has no power().
+ */
+async function pageHotPostIdsPostgres(
+  db: PrismaClient,
+  options: {
+    now: Date;
+    page: number;
+    pageSize: number;
+    filter?: FeedFilter;
+    authorIds?: string[];
+    ids?: string[];
+  },
+  size: number,
+  page: number,
+  offset: number,
+): Promise<HotPage> {
+  const where = hotWhere(options, "postgresql");
+  const nowIndex = where.nextIndex;
+  const limitIndex = nowIndex + 1;
+  const offsetIndex = nowIndex + 2;
+  const totalRows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+    `SELECT COUNT(*)::int AS total FROM "Post" p WHERE ${where.sql}`,
+    ...where.params,
+  );
+  const total = Number(totalRows[0]?.total ?? 0);
+  if (offset >= total) return { ids: [], page, hasMore: false, total };
+
+  const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
+    `
+    WITH grouped AS (
+      SELECT p."id" AS id, p."createdAt" AS "createdAt", COUNT(v."userId")::int AS points
+      FROM "Post" p
+      LEFT JOIN "PostVote" v ON v."postId" = p."id"
+      WHERE ${where.sql}
+      GROUP BY p."id", p."createdAt"
+    )
+    SELECT id
+    FROM grouped
+    ORDER BY (
+      (points - 1)::float / power(
+        GREATEST(
+          EXTRACT(EPOCH FROM ($${nowIndex}::timestamptz - ("createdAt" AT TIME ZONE 'UTC'))),
+          0
+        ) / 3600.0 + 2.0,
+        1.8
+      )
+    ) DESC, "createdAt" DESC, id DESC
+    LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `,
+    ...where.params,
+    options.now,
+    size,
+    offset,
+  );
+  return {
+    ids: rows.map((row) => row.id),
+    page,
+    hasMore: offset + size < total,
+    total,
+  };
+}
+
+function hotWhere(
+  options: { filter?: FeedFilter; authorIds?: string[]; ids?: string[] },
+  dialect: SqlDialect = "sqlite",
+): {
   sql: string;
   params: Array<string>;
+  nextIndex: number;
 } {
   const clauses: string[] = [];
   const params: string[] = [];
-  if (options.filter === "ask") clauses.push("p.url IS NULL");
-  if (options.filter === "show") clauses.push("instr(p.title, 'Show HN:') = 1");
+  let nextIndex = 1;
+  const mark = () => (dialect === "postgresql" ? `$${nextIndex++}` : (nextIndex += 1, "?"));
+  const column = (name: string) => (dialect === "postgresql" ? `"${name}"` : name);
+  if (options.filter === "ask") clauses.push(`p.${column("url")} IS NULL`);
+  if (options.filter === "show") {
+    clauses.push(
+      dialect === "postgresql" ? `strpos(p."title", 'Show HN:') = 1` : "instr(p.title, 'Show HN:') = 1",
+    );
+  }
   if (options.authorIds && options.authorIds.length > 0) {
-    clauses.push(`p.authorId IN (${options.authorIds.map(() => "?").join(", ")})`);
+    clauses.push(`p.${column("authorId")} IN (${options.authorIds.map(() => mark()).join(", ")})`);
     params.push(...options.authorIds);
   }
   if (options.ids && options.ids.length > 0) {
-    clauses.push(`p.id IN (${options.ids.map(() => "?").join(", ")})`);
+    clauses.push(`p.${column("id")} IN (${options.ids.map(() => mark()).join(", ")})`);
     params.push(...options.ids);
   }
-  return { sql: clauses.length > 0 ? clauses.join(" AND ") : "1 = 1", params };
+  return { sql: clauses.length > 0 ? clauses.join(" AND ") : "1 = 1", params, nextIndex };
 }

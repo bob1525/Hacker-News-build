@@ -1,12 +1,9 @@
-import { execFileSync } from "node:child_process";
-import { rmSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sortByHot } from "@/lib/domain/ranking";
 import { pageHotPostIds } from "@/lib/domain/ranking-sql";
 import { rankingBackend } from "@/lib/ranking-backend";
-
-const databaseUrl = "file:/tmp/hn-ranking-sql.db";
+import { prepareTestDatabase } from "@/tests/helpers/database";
 const now = new Date("2026-11-10T12:00:00.000Z");
 const hour = 3_600_000;
 
@@ -15,11 +12,7 @@ describe("sql hot ranking", () => {
   const ids: Record<string, string> = {};
 
   beforeAll(async () => {
-    rmSync("/tmp/hn-ranking-sql.db", { force: true });
-    execFileSync("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"], {
-      env: { ...process.env, DATABASE_URL: databaseUrl },
-      stdio: "inherit",
-    });
+    const databaseUrl = prepareTestDatabase("ranking_sql");
     db = new PrismaClient({ datasourceUrl: databaseUrl });
     const author = await db.user.create({
       data: { username: "author", email: "author@example.com", passwordHash: "x" },

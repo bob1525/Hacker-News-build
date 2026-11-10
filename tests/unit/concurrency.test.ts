@@ -1,21 +1,15 @@
-import { execFileSync } from "node:child_process";
-import { rmSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { prepareTestDatabase } from "@/tests/helpers/database";
 import { applyCommentVote, applyPostVote } from "@/lib/voting";
 
-const databaseUrl = "file:/tmp/hn-concurrency.db";
 const voters = 24;
 
 describe("concurrent votes", () => {
   let db: PrismaClient;
 
   beforeAll(() => {
-    rmSync("/tmp/hn-concurrency.db", { force: true });
-    execFileSync("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"], {
-      env: { ...process.env, DATABASE_URL: databaseUrl },
-      stdio: "inherit",
-    });
+    const databaseUrl = prepareTestDatabase("concurrency");
     db = new PrismaClient({ datasourceUrl: databaseUrl });
   }, 60_000);
 

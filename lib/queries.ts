@@ -8,6 +8,7 @@ import { pageHotPostIds } from "@/lib/domain/ranking-sql";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
 import { rankingBackend } from "@/lib/ranking-backend";
 import { sortSearchResults, tokenize } from "@/lib/domain/search";
+import { searchPostSql } from "@/lib/sql-dialect";
 import { getKarma } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { CommentDTO, FeedFilter, FeedSort, PostCard, ProfileComment, RecentComment } from "@/lib/types";
@@ -66,12 +67,8 @@ export async function searchPostIds(query: string): Promise<string[]> {
   const words = tokenize(query).filter((word) => WORD_PATTERN.test(word));
   if (words.length === 0) return [];
 
-  const clauses = words.map(() => "(instr(lower(title), ?) > 0 OR instr(lower(ifnull(text, '')), ?) > 0)");
   const params = words.flatMap((word) => [word, word]);
-  const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-    `SELECT id FROM Post WHERE ${clauses.join(" AND ")}`,
-    ...params,
-  );
+  const rows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(searchPostSql(words.length), ...params);
   return rows.map((row) => row.id);
 }
 
