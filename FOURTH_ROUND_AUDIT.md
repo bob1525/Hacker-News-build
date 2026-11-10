@@ -75,7 +75,17 @@ playwright          23 passed
 
 ## GitHub Actions
 
-本段在推送阶段 5 之后，根据这次提交触发的 `test` 检查补写。补写前不要把这里当成已经通过。
+阶段 5 的提交 `fa84ac7c55b18a44dfd6218e0b916c5beffab749` 触发的 push 运行已经结束：
+
+- 运行 [42844843940](https://github.com/bob1525/Hacker-News-build/actions/runs/42844843940)，结论 success
+- 作业 `test`：[129929626428](https://github.com/bob1525/Hacker-News-build/actions/runs/42844843940/job/129929626428)，从 2026-11-10 15:29:43Z 到 15:31:31Z，约 1 分 48 秒
+- 日志里的单元测试是 20 个文件、117 个测试通过
+- 端到端是 23 passed（51.5s）
+- `gh pr checks 1` 上的 `test` 检查指向同一次作业，结果是 pass
+
+这次提交没有另开一条 pull_request 运行。更早的阶段 2、3、4 push 运行被同组并发取消，不是测试失败。阶段 1 的 push 运行 [42843862527](https://github.com/bob1525/Hacker-News-build/actions/runs/42843862527) 是 success。阶段 4 的 pull_request 运行 [42844638310](https://github.com/bob1525/Hacker-News-build/actions/runs/42844638310) 也是 success，它测的是 `aef8a62`，不是最终提交。
+
+日志里仍有 `node:sqlite` 的 ExperimentalWarning。作业结束时还有一条 Node.js 20 弃用警告：`actions/checkout@v4` 和 `actions/setup-node@v4` 声明 Node 20，运行器实际用 Node 24。这两条都没有让作业失败。
 
 ## 仍未解决
 
