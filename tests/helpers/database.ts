@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
+import { configuredDatabaseUrl } from "@/lib/sql-dialect";
 
 const sqliteFiles: Record<string, string> = {
   concurrency: "/tmp/hn-concurrency.db",
@@ -7,13 +8,13 @@ const sqliteFiles: Record<string, string> = {
 };
 
 export function usesPostgres(env?: { DATABASE_URL?: string }): boolean {
-  const url = env?.DATABASE_URL ?? process.env.DATABASE_URL ?? "";
+  const url = configuredDatabaseUrl(env);
   return url.startsWith("postgresql://") || url.startsWith("postgres://");
 }
 
 /** SQLite keeps the existing temp files. PostgreSQL uses a schema of the same name. */
 export function testDatabaseUrl(name: keyof typeof sqliteFiles, env?: { DATABASE_URL?: string }): string {
-  const configured = env?.DATABASE_URL ?? process.env.DATABASE_URL ?? "";
+  const configured = configuredDatabaseUrl(env);
   if (!usesPostgres(env)) return `file:${sqliteFiles[name]}`;
   const url = new URL(configured);
   url.searchParams.set("schema", name);

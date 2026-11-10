@@ -1,7 +1,13 @@
 export type SqlDialect = "sqlite" | "postgresql";
 
+/** An explicit env is used as given. Omitting it reads `process.env`. */
+export function configuredDatabaseUrl(env?: { DATABASE_URL?: string }): string {
+  if (env) return env.DATABASE_URL ?? "";
+  return process.env.DATABASE_URL ?? "";
+}
+
 export function sqlDialect(env?: { DATABASE_URL?: string }): SqlDialect {
-  const url = env?.DATABASE_URL ?? process.env.DATABASE_URL ?? "";
+  const url = configuredDatabaseUrl(env);
   if (url.startsWith("postgresql://") || url.startsWith("postgres://")) return "postgresql";
   return "sqlite";
 }

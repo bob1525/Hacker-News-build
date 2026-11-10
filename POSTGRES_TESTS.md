@@ -74,7 +74,9 @@ Start at    16:40:59
 Duration    10.01s
 ```
 
-同一次运行的 `test` job [129971869399](https://github.com/bob1525/Hacker-News-build/actions/runs/42856781817/job/129971869399) 在 typecheck 失败，单元测试和端到端没有跑到。`sqlDialect` 和测试辅助函数把参数标成 `NodeJS.ProcessEnv`，对象字面量 `{ DATABASE_URL: "..." }` 在 `next typegen` 之后对不上。本机当时只跑了 `tsc --noEmit`，没有先跑 `next typegen`。参数改成可选的 `{ DATABASE_URL?: string }`，缺省时再读 `process.env.DATABASE_URL`。本机 `npm run typecheck` 随后通过。修正后的全绿运行补在下一节。
+同一次运行的 `test` job [129971869399](https://github.com/bob1525/Hacker-News-build/actions/runs/42856781817/job/129971869399) 在 typecheck 失败，单元测试和端到端没有跑到。`sqlDialect` 和测试辅助函数把参数标成 `NodeJS.ProcessEnv`，对象字面量 `{ DATABASE_URL: "..." }` 在 `next typegen` 之后对不上。本机当时只跑了 `tsc --noEmit`，没有先跑 `next typegen`。参数改成可选的 `{ DATABASE_URL?: string }`，缺省时再读 `process.env.DATABASE_URL`。本机 `npm run typecheck` 随后通过。
+
+第二次推送的运行 [42857218752](https://github.com/bob1525/Hacker-News-build/actions/runs/42857218752)：`test` job [129973424655](https://github.com/bob1525/Hacker-News-build/actions/runs/42857218752/job/129973424655) 成功，约 1 分 50 秒，typecheck、单元测试和端到端都通过。`postgres` job [129973424343](https://github.com/bob1525/Hacker-News-build/actions/runs/42857218752/job/129973424343) 失败。`sqlDialect({})` 在没有 `DATABASE_URL` 字段时又回退到 `process.env`，而这个 job 的环境变量是 PostgreSQL，断言期望空对象表示 SQLite。传入的 env 现在只看自己的字段；省略参数时才读 `process.env`。
 
 ## 发现的问题
 
