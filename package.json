@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "ioredis": "^5.11.1",
     "jose": "^6.2.17",
     "next": "15.5.29",
     "react": "19.1.0",
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.29",
+    "ioredis-mock": "^8.13.1",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",

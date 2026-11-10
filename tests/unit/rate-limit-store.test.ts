@@ -81,10 +81,13 @@ describe("rate limit stores", () => {
     const file = tempFile();
     const sqlite = openRateLimitStore({ ...process.env, RATE_LIMIT_BACKEND: "sqlite", RATE_LIMIT_SQLITE_PATH: file });
     expect(sqlite).toBeInstanceOf(SqliteRateLimitStore);
+    if (!(sqlite instanceof SqliteRateLimitStore)) return;
     expect(applyRateLimit(sqlite, "post:demo", 1, 1_000, 0).ok).toBe(true);
-    (sqlite as SqliteRateLimitStore).close();
+    sqlite.close();
 
-    expect(() => openRateLimitStore({ ...process.env, RATE_LIMIT_BACKEND: "redis" })).toThrow(/Unknown RATE_LIMIT_BACKEND/);
+    expect(() => openRateLimitStore({ ...process.env, RATE_LIMIT_BACKEND: "not-a-backend" })).toThrow(
+      /Unknown RATE_LIMIT_BACKEND/,
+    );
   });
 
   it("resets whichever store is active", () => {

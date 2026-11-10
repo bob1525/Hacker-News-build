@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { POST_DUPLICATE_WINDOW_MS } from "@/lib/config";
 import { hasRecentDuplicate } from "@/lib/domain/duplicate";
-import { enforceRateLimit } from "@/lib/limits";
+import { guardRateLimit } from "@/lib/limits";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { FormState } from "@/lib/types";
@@ -31,7 +31,7 @@ export async function createPost(_prev: FormState, formData: FormData): Promise<
     return { error: "Check the highlighted fields.", fieldErrors: fieldErrors(parsed.error) };
   }
 
-  const limited = enforceRateLimit("post", user.id);
+  const limited = await guardRateLimit("post", user.id);
   if (!limited.ok) return { error: limited.error };
 
   const now = new Date();

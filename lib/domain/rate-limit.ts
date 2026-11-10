@@ -39,6 +39,42 @@ export function applyRateLimit(
   return { ok: true };
 }
 
+/** Async stores use the same allow, reject, and prune rules as `applyRateLimit`. */
+export interface AsyncRateLimitStore {
+  check(key: string): Promise<number[]>;
+  record(key: string, stamps: readonly number[]): Promise<void>;
+  clear(): Promise<void>;
+  exclusive?<T>(key: string, task: () => Promise<T>): Promise<T>;
+}
+
+export async function applyRateLimitAsync(
+  store: AsyncRateLimitStore,
+  key: string,
+  limit: number,
+  windowMs: number,
+  now: number,
+): Promise<RateDecision> {
+  const run = async (): Promise<RateDecision> => {
+    const recent = (await store.check(key)).filter((stamp) => now - stamp < windowMs);
+    if (recent.length >= limit) {
+      const oldest = recent[0] ?? now;
+      const retryAfterMs = Math.max(0, windowMs - (now - oldest));
+      await store.record(key, recent);
+      const seconds = Math.max(1, Math.ceil(retryAfterMs / 1000));
+      return {
+        ok: false,
+        retryAfterMs,
+        error: `Too many requests. Try again in ${seconds} seconds.`,
+      };
+    }
+    recent.push(now);
+    await store.record(key, recent);
+    return { ok: true };
+  };
+  if (store.exclusive) return store.exclusive(key, run);
+  return run();
+}
+
 export class MemoryRateLimitStore implements RateLimitStore {
   constructor(private readonly buckets: RateBucket = new Map()) {}
 

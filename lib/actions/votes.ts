@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
-import { enforceRateLimit } from "@/lib/limits";
+import { guardRateLimit } from "@/lib/limits";
 import { applyCommentVote, applyPostVote } from "@/lib/voting";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -22,7 +22,7 @@ export async function votePost(postId: string): Promise<ActionResult<{ voted: bo
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Log in to vote." };
 
-  const limited = enforceRateLimit("vote", user.id);
+  const limited = await guardRateLimit("vote", user.id);
   if (!limited.ok) return { ok: false, error: limited.error };
 
   try {
@@ -46,7 +46,7 @@ export async function voteComment(commentId: string): Promise<ActionResult<{ vot
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Log in to vote." };
 
-  const limited = enforceRateLimit("vote", user.id);
+  const limited = await guardRateLimit("vote", user.id);
   if (!limited.ok) return { ok: false, error: limited.error };
 
   try {

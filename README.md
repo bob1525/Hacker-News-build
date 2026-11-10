@@ -71,7 +71,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### 速率限制和重复内容
 
-限制在服务端执行。超限返回 `Too many requests. Try again in N seconds.` 默认记在进程内存里。设置 `RATE_LIMIT_BACKEND=sqlite` 可改记到单独的 SQLite 文件，见 [RATE_LIMIT_PERSISTENCE.md](RATE_LIMIT_PERSISTENCE.md)。
+限制在服务端执行。超限返回 `Too many requests. Try again in N seconds.` 默认记在进程内存里。`RATE_LIMIT_BACKEND=sqlite` 改记到单独的 SQLite 文件，见 [RATE_LIMIT_PERSISTENCE.md](RATE_LIMIT_PERSISTENCE.md)。`RATE_LIMIT_BACKEND=redis` 加 `REDIS_URL` 则记到 Redis，见 [RATE_LIMIT_REDIS.md](RATE_LIMIT_REDIS.md)。Redis 连不上时请求被拒绝，不会悄悄退回内存。
 
 | 动作 | 上限 | 窗口 |
 | --- | --- | --- |
