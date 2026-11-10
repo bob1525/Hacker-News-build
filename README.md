@@ -1,5 +1,18 @@
 # Hacker News
 
+## 安全警告
+
+历史提交里曾经包含 `.env`。那把 `AUTH_SECRET` 长 31 个字符，短于现在要求的 32，而且不是占位符。任何人都能从旧提交里读到它。严禁继续使用那把密钥，也不要使用本仓库示例里的占位符。
+
+本地和生产都必须各自生成一把新的、至少 32 个字符的随机密钥：
+
+```bash
+openssl rand -base64 32
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+把结果写入只存在于本机的 `.env`。启动时会拒绝缺失、占位符或短于 32 个字符的值。清理历史的可执行步骤在 [HISTORY_CLEANUP_V2.md](HISTORY_CLEANUP_V2.md)。本仓库没有执行历史重写。
+
 一个可运行的 Hacker News 风格社区精简版：发帖、投票、热度排序、多层评论、搜索、收藏、关注和个人主页。
 
 ## 技术栈
@@ -93,10 +106,11 @@ npm run dev
 
 ```bash
 cp .env.example .env
+openssl rand -base64 32
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-把打印出来的字符串填进 `.env` 的 `AUTH_SECRET`。它必须是新生成的随机值，至少 32 个字符。应用在启动时检查这个值：缺失、仍是 `CHANGE_ME_TO_A_LONG_RANDOM_STRING` 这类占位符，或短于 32 个字符时，进程会把原因打到 stderr 并退出，不会再用内置的弱默认值签名。生产环境必须单独再生成一把，不能复用本地或历史里的值。
+把打印出来的字符串填进 `.env` 的 `AUTH_SECRET`。它必须是新生成的随机值，至少 32 个字符。也可以用 `openssl rand -base64 32`。应用在启动时检查这个值：缺失、仍是 `PLACEHOLDER_REPLACE_WITH_A_NEW_SECRET` 这类占位符，或短于 32 个字符时，进程会把原因打到 stderr 并退出，不会再用内置的弱默认值签名。生产环境必须单独再生成一把，不能复用本地或历史里的值。
 
 单元测试和端到端测试会自己设置合规的 `AUTH_SECRET`，不读取这份本地文件。`npm run db:seed` 只依赖 `DATABASE_URL`。
 
