@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { PAGE_SIZE } from "@/lib/config";
 import { buildCommentTree, type ThreadNode } from "@/lib/domain/comments";
+import { paginate } from "@/lib/domain/pagination";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
 import { sortSearchResults, tokenize } from "@/lib/domain/search";
 import { getKarma } from "@/lib/auth";
@@ -105,13 +106,12 @@ export async function getFeed(options: {
       ? sortByNewest(records)
       : sortByHot(records, now);
 
-  const start = (page - 1) * PAGE_SIZE;
-  const slice = sorted.slice(start, start + PAGE_SIZE);
+  const paged = paginate(sorted, page, PAGE_SIZE);
   return {
-    items: slice.map(toCard),
-    page,
-    hasMore: start + PAGE_SIZE < sorted.length,
-    total: sorted.length,
+    items: paged.items.map(toCard),
+    page: paged.page,
+    hasMore: paged.hasMore,
+    total: paged.total,
   };
 }
 
