@@ -89,14 +89,14 @@ npm run dev
 
 ### 环境变量
 
-`.env` 不进入 Git。第一次在本地跑之前，从示例文件生成它，并换成自己的密钥：
+`.env` 不进入 Git。第一次在本地跑之前，从示例文件生成它，并换成一把全新的密钥。旧的 `AUTH_SECRET` 已经出现在历史提交里，严禁继续使用；生成方法和清理历史的步骤见 [HISTORY_CLEANUP.md](HISTORY_CLEANUP.md)。
 
 ```bash
 cp .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-把打印出来的字符串填进 `.env` 的 `AUTH_SECRET`。应用在启动时检查这个值：缺失、仍是 `CHANGE_ME_TO_A_LONG_RANDOM_STRING` 这类占位符，或短于 32 个字符时，进程会把原因打到 stderr 并退出，不会再用内置的弱默认值签名。生产环境必须使用单独生成的随机值。
+把打印出来的字符串填进 `.env` 的 `AUTH_SECRET`。它必须是新生成的随机值，至少 32 个字符。应用在启动时检查这个值：缺失、仍是 `CHANGE_ME_TO_A_LONG_RANDOM_STRING` 这类占位符，或短于 32 个字符时，进程会把原因打到 stderr 并退出，不会再用内置的弱默认值签名。生产环境必须单独再生成一把，不能复用本地或历史里的值。
 
 单元测试和端到端测试会自己设置合规的 `AUTH_SECRET`，不读取这份本地文件。`npm run db:seed` 只依赖 `DATABASE_URL`。
 
