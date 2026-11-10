@@ -1,5 +1,7 @@
 export const PAGE_SIZE = 30;
 export const MAX_COMMENT_DEPTH = 8;
+/** Authors can edit a comment until this long after it was created. */
+export const COMMENT_EDIT_WINDOW_MS = 15 * 60 * 1000;
 export const SESSION_COOKIE = "hn_session";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 

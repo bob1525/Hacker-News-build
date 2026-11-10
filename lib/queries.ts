@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { PAGE_SIZE } from "@/lib/config";
+import { canDeleteComment, canEditComment, commentDisplayText } from "@/lib/domain/comment-moderation";
 import { buildCommentTree, type ThreadNode } from "@/lib/domain/comments";
 import { paginate } from "@/lib/domain/pagination";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
@@ -120,6 +121,10 @@ type CommentSource = {
   parentId: string | null;
   text: string;
   createdAt: Date;
+  editedAt: string | null;
+  deleted: boolean;
+  editable: boolean;
+  deletable: boolean;
   author: { id: string; username: string };
   points: number;
   voted: boolean;
@@ -131,6 +136,10 @@ function serializeComments(nodes: ThreadNode<CommentSource>[]): CommentDTO[] {
     parentId: node.parentId,
     text: node.text,
     createdAt: node.createdAt.toISOString(),
+    editedAt: node.editedAt,
+    deleted: node.deleted,
+    editable: node.editable,
+    deletable: node.deletable,
     author: node.author,
     points: node.points,
     voted: node.voted,
@@ -158,12 +167,27 @@ export async function getPostDetail(id: string, viewerId: string | null) {
     orderBy: { createdAt: "asc" },
   });
 
+  const now = new Date();
   const tree = buildCommentTree(
     comments.map((comment) => ({
       id: comment.id,
       parentId: comment.parentId,
-      text: comment.text,
+      text: commentDisplayText(comment.text, comment.deletedAt),
       createdAt: comment.createdAt,
+      editedAt: comment.editedAt ? comment.editedAt.toISOString() : null,
+      deleted: comment.deletedAt != null,
+      editable: canEditComment({
+        authorId: comment.authorId,
+        viewerId,
+        createdAt: comment.createdAt,
+        deletedAt: comment.deletedAt,
+        now,
+      }),
+      deletable: canDeleteComment({
+        authorId: comment.authorId,
+        viewerId,
+        deletedAt: comment.deletedAt,
+      }),
       author: comment.author,
       points: comment._count.votes,
       voted: comment.votes.length > 0,
@@ -204,7 +228,7 @@ export async function getProfile(username: string, viewerId: string | null) {
 
   const profileComments: ProfileComment[] = comments.map((comment) => ({
     id: comment.id,
-    text: comment.text,
+    text: commentDisplayText(comment.text, comment.deletedAt),
     createdAt: comment.createdAt.toISOString(),
     points: comment._count.votes,
     post: comment.post,
@@ -237,7 +261,7 @@ export async function getRecentComments(): Promise<RecentComment[]> {
 
   return comments.map((comment) => ({
     id: comment.id,
-    text: comment.text,
+    text: commentDisplayText(comment.text, comment.deletedAt),
     createdAt: comment.createdAt.toISOString(),
     points: comment._count.votes,
     post: comment.post,

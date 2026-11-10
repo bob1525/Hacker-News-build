@@ -61,6 +61,11 @@ export const commentSchema = z.object({
   text: z.string().trim().min(1, "Comment text is required.").max(4000, "Comment must be 4000 characters or fewer."),
 });
 
+export const editCommentSchema = z.object({
+  commentId: z.string().trim().min(1, "Missing comment.").max(64),
+  text: z.string().trim().min(1, "Comment text is required.").max(4000, "Comment must be 4000 characters or fewer."),
+});
+
 export function fieldErrors(error: { issues: { path: PropertyKey[]; message: string }[] }): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) {

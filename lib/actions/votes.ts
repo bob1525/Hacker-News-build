@@ -58,10 +58,12 @@ export async function voteComment(commentId: string): Promise<ActionResult<{ vot
         id: true,
         postId: true,
         authorId: true,
+        deletedAt: true,
         author: { select: { username: true } },
       },
     });
     if (!comment) return { ok: false, error: "That comment no longer exists." };
+    if (comment.deletedAt) return { ok: false, error: "You can't vote on a deleted comment." };
     if (comment.authorId === user.id) return { ok: false, error: "You can't vote on your own comment." };
 
     const existing = await prisma.commentVote.findUnique({

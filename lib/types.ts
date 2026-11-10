@@ -22,6 +22,10 @@ export type CommentDTO = {
   parentId: string | null;
   text: string;
   createdAt: string;
+  editedAt: string | null;
+  deleted: boolean;
+  editable: boolean;
+  deletable: boolean;
   author: { id: string; username: string };
   points: number;
   voted: boolean;
