@@ -48,17 +48,7 @@ datasource db {
 }
 ```
 
-4. 不要把现有的 SQLite 迁移 SQL 原样拿到 PostgreSQL 上执行。`prisma/migrations` 里的 SQL 是按 SQLite 生成的。在一台只连着新库的环境里重新生成：
-
-```bash
-mkdir -p prisma/migrations/postgresql
-npx prisma migrate diff \
-  --from-empty \
-  --to-schema-datamodel prisma/schema.prisma \
-  --script > prisma/migrations/postgresql/0001_init.sql
-```
-
-审过这份 SQL 之后，再把它做成 Prisma 能跟踪的迁移。已经有 SQLite 迁移历史的仓库，不能指望 `prisma migrate deploy` 在 PostgreSQL 上重放旧目录。演示数据用 `npm run db:seed` 重新灌。若要把已有 SQLite 里的用户和帖子搬过去，按表导出 CSV 再导入，不要用 `sqlite3 .dump` 的 SQL。
+4. 不要把现有的 SQLite 迁移 SQL 原样拿到 PostgreSQL 上执行。`prisma/migrations` 里的 SQL 是按 SQLite 生成的。直接对当前 `prisma/schema.prisma` 跑 `migrate diff` 也会得到 SQLite SQL，因为 provider 仍是 `sqlite`。第六轮已经用一份临时的 postgresql schema 生成了 `prisma/migrations-postgres/0001_init.sql`。切换步骤以 [POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md) 为准。已经有 SQLite 迁移历史的仓库，不能指望 `prisma migrate deploy` 在 PostgreSQL 上重放旧目录。演示数据用 `npm run db:seed` 重新灌。若要把已有 SQLite 里的用户和帖子搬过去，按表导出 CSV 再导入，不要用 `sqlite3 .dump` 的 SQL。
 
 5. 生成客户端并建表：
 
