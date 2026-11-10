@@ -44,6 +44,8 @@ export interface AsyncRateLimitStore {
   check(key: string): Promise<number[]>;
   record(key: string, stamps: readonly number[]): Promise<void>;
   clear(): Promise<void>;
+  /** One round trip that both checks and records. Redis uses this so two processes cannot interleave. */
+  consume?(key: string, limit: number, windowMs: number, now: number): Promise<RateDecision>;
   exclusive?<T>(key: string, task: () => Promise<T>): Promise<T>;
 }
 
@@ -54,6 +56,7 @@ export async function applyRateLimitAsync(
   windowMs: number,
   now: number,
 ): Promise<RateDecision> {
+  if (store.consume) return store.consume(key, limit, windowMs, now);
   const run = async (): Promise<RateDecision> => {
     const recent = (await store.check(key)).filter((stamp) => now - stamp < windowMs);
     if (recent.length >= limit) {

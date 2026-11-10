@@ -80,7 +80,7 @@ REDIS_URL=redis://127.0.0.1:6379/0
 ## 发现的问题与处理方式
 
 - 现有 `RateLimitStore` 是同步的。把 `enforceRateLimit` 改成返回 Promise 会让 `tests/unit/rate-limit.test.ts` 无法再读取 `.ok`。因此 Redis 走 `applyRateLimitAsync` 和 `guardRateLimit`，同步函数在内存和 SQLite 上保持原样。若在 Redis 后端上误调 `enforceRateLimit`，会抛出 `RATE_LIMIT_BACKEND=redis must be checked with guardRateLimit.`
-- 同一进程内的重叠调用由 `exclusive` 排成队列，测试确认 10 个并发里只有 4 个成功。两个进程仍可能交错 `GET` 和 `SET`，把同一次点击记丢或记重。要消除这一点需要把整段判定放进 Lua。这次没有做，因为 `ioredis-mock` 不能当作 Lua 的依据，而当前测试要在没有 Redis 服务器时运行。
+- 第五轮里，同一进程内的重叠调用由 `exclusive` 排成队列。两个进程仍可能交错 `GET` 和 `SET`。第六轮把判定改成一次 `EVAL`，见 `REDIS_ATOMIC.md`。Redis 路径不再经过 `check` 再 `record`。
 - `openRateLimitStore` 现在的返回类型包含 Redis。SQLite 测试在 `instanceof` 收窄之后再调用同步 `applyRateLimit`，断言本身没变。
 - 导入 `ioredis` 会进入服务端打包。`next.config.ts` 把它列入 `serverExternalPackages`，避免被打进客户端包。
 

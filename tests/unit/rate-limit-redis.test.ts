@@ -98,6 +98,9 @@ describe("redis rate limit store", () => {
       del: async () => 0,
       scan: async () => ["0", []],
       quit: async () => "OK",
+      eval: async () => {
+        throw new Error("ECONNREFUSED");
+      },
     };
     const store = new RedisRateLimitStore(failing);
     await expect(applyRateLimitAsync(store, "post:demo", 1, 1_000, 0)).rejects.toBeInstanceOf(RateLimitStoreError);

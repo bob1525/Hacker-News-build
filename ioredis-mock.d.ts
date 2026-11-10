@@ -7,5 +7,6 @@ declare module "ioredis-mock" {
     del(key: string, ...keys: string[]): Promise<unknown>;
     scan(cursor: string | number, ...args: Array<string | number>): Promise<[string | number, string[]]>;
     quit(): Promise<unknown>;
+    eval(script: string, numKeys: number, ...args: Array<string | number>): Promise<unknown>;
   }
 }
