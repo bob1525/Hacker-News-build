@@ -1,6 +1,8 @@
 export type FormState = {
   error?: string;
   fieldErrors?: Partial<Record<string, string>>;
+  /** Ask the browser to reload the current page after a successful comment write. */
+  refresh?: boolean;
 };
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -15,6 +17,7 @@ export type PostCard = {
   points: number;
   commentCount: number;
   voted: boolean;
+  favorited: boolean;
 };
 
 export type CommentDTO = {

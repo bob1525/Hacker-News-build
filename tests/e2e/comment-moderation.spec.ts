@@ -17,8 +17,9 @@ test("edits and soft-deletes a fresh comment", async ({ page }) => {
   await comment.getByRole("button", { name: "edit", exact: true }).click();
   await comment.getByRole("textbox", { name: "Edit comment" }).fill(revised);
   await comment.getByRole("button", { name: "save" }).click();
+  await expect(page.getByRole("textbox", { name: "Edit comment" })).toHaveCount(0);
   await expect(page.getByText(revised)).toBeVisible();
-  await expect(page.getByText("edited").first()).toBeVisible();
+  await expect(page.getByText("edited", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(original)).toHaveCount(0);
 
   await page.getByTestId("comment").filter({ hasText: revised }).getByRole("button", { name: "delete", exact: true }).click();

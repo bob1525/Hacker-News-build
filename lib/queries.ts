@@ -22,6 +22,7 @@ type PostRecord = {
   points: number;
   commentCount: number;
   voted: boolean;
+  favorited: boolean;
 };
 
 const postInclude = (viewerId: string | null) =>
@@ -29,6 +30,10 @@ const postInclude = (viewerId: string | null) =>
     author: { select: { id: true, username: true } },
     _count: { select: { votes: true, comments: true } },
     votes: {
+      where: { userId: viewerId ?? "" },
+      select: { userId: true },
+    },
+    favorites: {
       where: { userId: viewerId ?? "" },
       select: { userId: true },
     },
@@ -47,6 +52,7 @@ function toRecord(row: PostRow): PostRecord {
     points: row._count.votes,
     commentCount: row._count.comments,
     voted: row.votes.length > 0,
+    favorited: row.favorites.length > 0,
   };
 }
 
@@ -67,9 +73,10 @@ export async function searchPostIds(query: string): Promise<string[]> {
   return rows.map((row) => row.id);
 }
 
-function feedWhere(filter: FeedFilter, ids: string[] | null): Prisma.PostWhereInput {
+function feedWhere(filter: FeedFilter, ids: string[] | null, authorIds?: string[]): Prisma.PostWhereInput {
   const where: Prisma.PostWhereInput = {};
   if (ids) where.id = { in: ids };
+  if (authorIds) where.authorId = { in: authorIds };
   if (filter === "ask") where.url = null;
   if (filter === "show") where.title = { startsWith: "Show HN:" };
   return where;
@@ -81,11 +88,15 @@ export async function getFeed(options: {
   page: number;
   query?: string;
   viewerId?: string | null;
+  authorIds?: string[];
 }): Promise<{ items: PostCard[]; page: number; hasMore: boolean; total: number }> {
   const page = options.page;
   const filter = options.filter ?? "all";
   const query = options.query?.trim() ?? "";
   const viewerId = options.viewerId ?? null;
+  if (options.authorIds && options.authorIds.length === 0) {
+    return { items: [], page, hasMore: false, total: 0 };
+  }
 
   let ids: string[] | null = null;
   if (query) {
@@ -95,7 +106,7 @@ export async function getFeed(options: {
   }
 
   const rows = await prisma.post.findMany({
-    where: feedWhere(filter, ids),
+    where: feedWhere(filter, ids, options.authorIds),
     include: postInclude(viewerId),
   });
 
@@ -207,7 +218,7 @@ export async function getProfile(username: string, viewerId: string | null) {
   });
   if (!user) return null;
 
-  const [karma, posts, comments] = await Promise.all([
+  const [karma, posts, comments, followerCount, followingCount, viewerFollow, favorites] = await Promise.all([
     getKarma(user.id),
     prisma.post.findMany({
       where: { authorId: user.id },
@@ -223,6 +234,20 @@ export async function getProfile(username: string, viewerId: string | null) {
         post: { select: { id: true, title: true } },
         _count: { select: { votes: true } },
       },
+    }),
+    prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.follow.count({ where: { followerId: user.id } }),
+    viewerId
+      ? prisma.follow.findUnique({
+          where: { followerId_followingId: { followerId: viewerId, followingId: user.id } },
+          select: { followerId: true },
+        })
+      : Promise.resolve(null),
+    prisma.favorite.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { post: { include: postInclude(viewerId) } },
     }),
   ]);
 
@@ -243,8 +268,12 @@ export async function getProfile(username: string, viewerId: string | null) {
       email: viewerId === user.id ? user.email : null,
     },
     karma,
+    followerCount,
+    followingCount,
+    viewerFollows: Boolean(viewerFollow),
     posts: posts.map((post) => toCard(toRecord(post))),
     comments: profileComments,
+    favorites: favorites.map((favorite) => toCard(toRecord(favorite.post))),
   };
 }
 

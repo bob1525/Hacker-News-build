@@ -20,6 +20,7 @@ export async function Feed({
   page,
   path,
   query,
+  authorIds,
   emptyTitle = "No stories yet.",
   emptyHint = "Be the first to submit one.",
 }: {
@@ -28,6 +29,7 @@ export async function Feed({
   page: number;
   path: string;
   query?: string;
+  authorIds?: string[];
   emptyTitle?: string;
   emptyHint?: string;
 }) {
@@ -37,6 +39,7 @@ export async function Feed({
     filter,
     page,
     query,
+    authorIds,
     viewerId: user?.id ?? null,
   });
 

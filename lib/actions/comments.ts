@@ -1,7 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect, unstable_rethrow } from "next/navigation";
+import { unstable_rethrow } from "next/navigation";
 import { MAX_COMMENT_DEPTH } from "@/lib/config";
 import { canDeleteComment, canEditComment } from "@/lib/domain/comment-moderation";
 import { getCurrentUser } from "@/lib/auth";
@@ -74,21 +73,12 @@ export async function createComment(_prev: FormState, formData: FormData): Promi
         parentId,
       },
     });
-    revalidatePath(`/item/${post.id}`);
-    revalidatePath("/comments");
-    revalidatePath(`/user/${user.username}`);
   } catch (error) {
     unstable_rethrow(error);
     return { error: "Could not post the comment. Please try again." };
   }
 
-  redirect(`/item/${parsed.data.postId}`);
-}
-
-function refreshComment(postId: string, username: string) {
-  revalidatePath(`/item/${postId}`);
-  revalidatePath("/comments");
-  revalidatePath(`/user/${username}`);
+  return { refresh: true };
 }
 
 export async function updateComment(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -104,11 +94,10 @@ export async function updateComment(_prev: FormState, formData: FormData): Promi
     return { error: errors.text ?? errors.commentId ?? "Comment is invalid." };
   }
 
-  let postId = "";
   try {
     const comment = await prisma.comment.findUnique({
       where: { id: parsed.data.commentId },
-      select: { id: true, authorId: true, postId: true, createdAt: true, deletedAt: true },
+      select: { id: true, authorId: true, createdAt: true, deletedAt: true },
     });
     if (!comment) return { error: "That comment no longer exists." };
     if (
@@ -126,14 +115,12 @@ export async function updateComment(_prev: FormState, formData: FormData): Promi
       where: { id: comment.id },
       data: { text: parsed.data.text, editedAt: new Date() },
     });
-    postId = comment.postId;
-    refreshComment(comment.postId, user.username);
   } catch (error) {
     unstable_rethrow(error);
     return { error: "Could not edit the comment. Please try again." };
   }
 
-  redirect(`/item/${postId}`);
+  return { refresh: true };
 }
 
 export async function deleteComment(commentId: string): Promise<ActionResult<{ deleted: true }>> {
@@ -143,7 +130,7 @@ export async function deleteComment(commentId: string): Promise<ActionResult<{ d
   try {
     const comment = await prisma.comment.findUnique({
       where: { id: commentId },
-      select: { id: true, authorId: true, postId: true, deletedAt: true },
+      select: { id: true, authorId: true, deletedAt: true },
     });
     if (!comment) return { ok: false, error: "That comment no longer exists." };
     if (!canDeleteComment({ authorId: comment.authorId, viewerId: user.id, deletedAt: comment.deletedAt })) {
@@ -154,7 +141,6 @@ export async function deleteComment(commentId: string): Promise<ActionResult<{ d
       where: { id: comment.id },
       data: { deletedAt: new Date() },
     });
-    refreshComment(comment.postId, user.username);
     return { ok: true, data: { deleted: true } };
   } catch (error) {
     unstable_rethrow(error);

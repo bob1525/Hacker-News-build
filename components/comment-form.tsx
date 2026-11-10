@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createComment } from "@/lib/actions/comments";
 import type { FormState } from "@/lib/types";
 import { buttonClass, inputClass } from "@/components/styles";
@@ -21,6 +21,10 @@ export function CommentForm({
   const [state, submit, pending] = useActionState(createComment, initialState);
   const [text, setText] = useState("");
   const fieldId = `comment-${parentId ?? "root"}`;
+
+  useEffect(() => {
+    if (state.refresh) window.location.reload();
+  }, [state.refresh]);
   const submitLabel = label ?? (parentId ? "post reply" : "add comment");
 
   return (

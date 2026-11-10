@@ -5,6 +5,7 @@ import { plural } from "@/lib/domain/format";
 import { formatRelative } from "@/lib/domain/time";
 import { siteLabel } from "@/lib/domain/url";
 import type { PostCard } from "@/lib/types";
+import { FavoriteButton } from "@/components/favorite-button";
 import { RichText } from "@/components/rich-text";
 import { VoteButton } from "@/components/vote-button";
 
@@ -74,6 +75,12 @@ export function PostRow({
             <a href={discussion} className="hover:underline">
               {plural(post.commentCount, "comment")}
             </a>
+            {viewerId ? (
+              <>
+                {" | "}
+                <FavoriteButton postId={post.id} favorited={post.favorited} />
+              </>
+            ) : null}
           </>
         ) : null}
       </p>

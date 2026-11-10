@@ -57,6 +57,9 @@ export function HeaderBar({ user }: { user: { username: string; karma: number } 
           <div className="shrink-0">
             {user ? (
               <span className="inline-flex items-center gap-1.5">
+                <Link href="/following" className={path === "/following" ? "underline" : "hover:underline"}>
+                  following
+                </Link>
                 <Link href={`/user/${user.username}`} data-testid="current-user" className="hover:underline">
                   {user.username}
                 </Link>
