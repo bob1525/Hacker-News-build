@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { enforceRateLimit } from "@/lib/limits";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { ActionResult } from "@/lib/types";
@@ -19,6 +20,9 @@ function refreshPost(postId: string, authorUsername: string) {
 export async function votePost(postId: string): Promise<ActionResult<{ voted: boolean; points: number }>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Log in to vote." };
+
+  const limited = enforceRateLimit("vote", user.id);
+  if (!limited.ok) return { ok: false, error: limited.error };
 
   try {
     const post = await prisma.post.findUnique({
@@ -50,6 +54,9 @@ export async function votePost(postId: string): Promise<ActionResult<{ voted: bo
 export async function voteComment(commentId: string): Promise<ActionResult<{ voted: boolean; points: number }>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Log in to vote." };
+
+  const limited = enforceRateLimit("vote", user.id);
+  if (!limited.ok) return { ok: false, error: limited.error };
 
   try {
     const comment = await prisma.comment.findUnique({

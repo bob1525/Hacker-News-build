@@ -1,8 +1,10 @@
 "use server";
 
 import { unstable_rethrow } from "next/navigation";
-import { MAX_COMMENT_DEPTH } from "@/lib/config";
+import { COMMENT_DUPLICATE_WINDOW_MS, MAX_COMMENT_DEPTH } from "@/lib/config";
 import { canDeleteComment, canEditComment } from "@/lib/domain/comment-moderation";
+import { hasRecentDuplicate } from "@/lib/domain/duplicate";
+import { enforceRateLimit } from "@/lib/limits";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { ActionResult, FormState } from "@/lib/types";
@@ -41,6 +43,18 @@ export async function createComment(_prev: FormState, formData: FormData): Promi
   if (!parsed.success) {
     const errors = fieldErrors(parsed.error);
     return { error: errors.text ?? errors.postId ?? "Comment is invalid." };
+  }
+
+  const limited = enforceRateLimit("comment", user.id);
+  if (!limited.ok) return { error: limited.error };
+
+  const now = new Date();
+  const recent = await prisma.comment.findMany({
+    where: { authorId: user.id, createdAt: { gte: new Date(now.getTime() - COMMENT_DUPLICATE_WINDOW_MS) }, deletedAt: null },
+    select: { text: true, createdAt: true },
+  });
+  if (hasRecentDuplicate(parsed.data.text, recent, now, COMMENT_DUPLICATE_WINDOW_MS)) {
+    return { error: "You recently posted a very similar comment." };
   }
 
   try {
