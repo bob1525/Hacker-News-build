@@ -77,14 +77,29 @@ Chrome 安装和 `playwright install-deps` 在单元测试和端到端测试之�
 
 提交工作流之前，这个 PR 没有 check runs。工作流文件是新加的，第一次 push 才会让 GitHub 创建运行。
 
+第一次运行没有失败，不需要改测试或工作流。日志里有两条不导致失败的提示：`actions/checkout@v4` 和 `actions/setup-node@v4` 仍声明 Node.js 20，runner 实际用 Node.js 24 执行 action；`ubuntu-latest` 计划迁到 Ubuntu 26。检查结论仍是 success。
+
 ## 如何验证
 
 推送后看上面的 Actions 链接。lint、typecheck、单元测试、端到端测试都要成功，这一阶段才算通过。失败就改到通过为止。
 
 ## 当前运行结果
 
-这一节在第一次运行结束前先留空，运行完成后补上 run id、结论和链接。
+提交 `27034861da28cc22865b6f0d1071d6d43bbdf743` 同时触发了 push 和 pull_request。两条都是 success，job 名都是 `test`。
+
+| 事件 | Run | Job | 结论 | 耗时 |
+| --- | --- | --- | --- | --- |
+| push | [42833139524](https://github.com/bob1525/Hacker-News-build/actions/runs/42833139524) | [129888178636](https://github.com/bob1525/Hacker-News-build/actions/runs/42833139524/job/129888178636) | success | 5 分 3 秒 |
+| pull_request | [42833146338](https://github.com/bob1525/Hacker-News-build/actions/runs/42833146338) | [129888201096](https://github.com/bob1525/Hacker-News-build/actions/runs/42833146338/job/129888201096) | success | 4 分 58 秒 |
+
+push 那次的日志：
+
+- Lint、Typecheck、Unit tests、Install Google Chrome、Install Playwright system libraries、End-to-end tests 全部 success。
+- Vitest：19 个文件通过，111 个测试通过，耗时 3.61 秒。
+- Playwright：23 passed（1.4 分钟）。
+
+PR #1 的 Checks 里这两条 `test` 都已结束并通过。这次只改文档的提交会再触发同一套 workflow，上面两行是第一次完整运行的结果。
 
 ## 最终状态
 
-workflow 已放进分支。运行结论见「当前运行结果」。
+`.github/workflows/ci.yml` 已在分支上，并且在 PR 上真实跑通。lint、typecheck、111 个单元测试和 23 个端到端测试在 GitHub Actions 里都通过。
