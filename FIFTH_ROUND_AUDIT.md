@@ -24,7 +24,7 @@ playwright          23 passed
 | 2 Redis 速率限制 | [RATE_LIMIT_REDIS.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/RATE_LIMIT_REDIS.md) | `b2ed0b41f2b499a67d597d4d53c23f18d862e1f5` |
 | 3 PostgreSQL CI | [POSTGRES_CI.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/POSTGRES_CI.md) | `64ad88dfc31dfb09efbef45d594fc37a3ad94587`、`a14ea9afb293c033dd9bbdf6e51dedc294273674` |
 | 4 SQL 热度排序 | [RANKING_DB.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/RANKING_DB.md) | `5ee84ca8797f5983447b422b9a5e73a2f4f18955` |
-| 5 本审计 | [FIFTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/FIFTH_ROUND_AUDIT.md) | 本文件所在提交 |
+| 5 本审计 | [FIFTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/FIFTH_ROUND_AUDIT.md) | `6a4850db6a178cf9f480baa4e71833697d6b7325` |
 
 ### 阶段 1
 
@@ -100,7 +100,14 @@ git ls-files        NO_TRACKED_DOTENV
 
 ## CI 最新运行
 
-本段在推送阶段 5 之后，根据包含 `postgres` job 的那次运行补写。
+阶段 5 提交 `6a4850db6a178cf9f480baa4e71833697d6b7325` 的 push 运行 [42851953604](https://github.com/bob1525/Hacker-News-build/actions/runs/42851953604) 结论 success：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `test` [129954872623](https://github.com/bob1525/Hacker-News-build/actions/runs/42851953604/job/129954872623) | success | 2026-11-10 16:11:16Z 到 16:13:32Z，约 2 分 16 秒 |
+| `postgres` [129954873293](https://github.com/bob1525/Hacker-News-build/actions/runs/42851953604/job/129954873293) | success | 同一次运行，约 54 秒 |
+
+`test` job：22 个文件、130 个单元测试通过，端到端 `23 passed`。`postgres` job：`PostgreSQL schema push and probe write succeeded`，单元测试同样是 130 个通过。Node.js 20 弃用提示和 Ubuntu 26 迁移提示没有让 job 失败。
 
 ## 仍未解决
 
