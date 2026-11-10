@@ -4,7 +4,9 @@ import { PAGE_SIZE } from "@/lib/config";
 import { canDeleteComment, canEditComment, commentDisplayText } from "@/lib/domain/comment-moderation";
 import { buildCommentTree, type ThreadNode } from "@/lib/domain/comments";
 import { paginate } from "@/lib/domain/pagination";
+import { pageHotPostIds } from "@/lib/domain/ranking-sql";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
+import { rankingBackend } from "@/lib/ranking-backend";
 import { sortSearchResults, tokenize } from "@/lib/domain/search";
 import { getKarma } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -105,13 +107,42 @@ export async function getFeed(options: {
     if (ids.length === 0) return { items: [], page, hasMore: false, total: 0 };
   }
 
+  const now = new Date();
+  if (!query && options.sort !== "newest" && rankingBackend() === "sql") {
+    const hot = await pageHotPostIds(prisma, {
+      now,
+      page,
+      pageSize: PAGE_SIZE,
+      filter,
+      authorIds: options.authorIds,
+    });
+    if (hot.ids.length === 0) {
+      return { items: [], page: hot.page, hasMore: hot.hasMore, total: hot.total };
+    }
+    const hotRows = await prisma.post.findMany({
+      where: { id: { in: hot.ids } },
+      include: postInclude(viewerId),
+    });
+    const byId = new Map(hotRows.map((row) => [row.id, row]));
+    const items = hot.ids.map((id) => {
+      const row = byId.get(id);
+      if (!row) throw new Error(`Ranked post ${id} was not loaded.`);
+      return toCard(toRecord(row));
+    });
+    return {
+      items,
+      page: hot.page,
+      hasMore: hot.hasMore,
+      total: hot.total,
+    };
+  }
+
   const rows = await prisma.post.findMany({
     where: feedWhere(filter, ids, options.authorIds),
     include: postInclude(viewerId),
   });
 
   const records = rows.map(toRecord);
-  const now = new Date();
   const sorted = query
     ? sortSearchResults(records, query, now)
     : options.sort === "newest"

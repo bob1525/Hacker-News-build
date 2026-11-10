@@ -28,7 +28,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 - 注册、登录、退出。不能投票给自己的帖子或评论，可以取消已投的票。
 - 发布帖子：标题，外加 URL、正文，或两者都有。标题以 `Show HN:` 开头会出现在 Show 页；不填 URL 的文字帖出现在 Ask 页。
 - 首页按热度排序，New 页按时间排序，每页 30 条，底部有 More。
-- 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。
+- 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度下推到 SQL，见 [RANKING_DB.md](RANKING_DB.md)。
 - 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。
 - 空状态、加载骨架和表单错误提示。
 
