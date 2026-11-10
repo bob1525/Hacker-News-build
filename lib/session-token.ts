@@ -1,7 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
+import { assertAuthSecret } from "@/lib/auth-secret";
 
 function secretKey(): Uint8Array {
-  const value = process.env.AUTH_SECRET ?? "dev-hacker-news-secret-change-me-please";
+  const value = process.env.AUTH_SECRET;
+  assertAuthSecret(value);
   return new TextEncoder().encode(value);
 }
 

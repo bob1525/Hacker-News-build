@@ -30,9 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Local secrets. Commit .env.example only.
+# .env used to be tracked; keep it ignored so AUTH_SECRET stays off the remote.
+.env
 .env.local
 .env.*.local
+.env.development
+.env.production
+!.env.example
 
 # sqlite
 *.db
