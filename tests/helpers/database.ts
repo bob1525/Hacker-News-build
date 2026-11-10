@@ -6,15 +6,16 @@ const sqliteFiles: Record<string, string> = {
   ranking_sql: "/tmp/hn-ranking-sql.db",
 };
 
-export function usesPostgres(env: NodeJS.ProcessEnv = process.env): boolean {
-  const url = env.DATABASE_URL ?? "";
+export function usesPostgres(env?: { DATABASE_URL?: string }): boolean {
+  const url = env?.DATABASE_URL ?? process.env.DATABASE_URL ?? "";
   return url.startsWith("postgresql://") || url.startsWith("postgres://");
 }
 
 /** SQLite keeps the existing temp files. PostgreSQL uses a schema of the same name. */
-export function testDatabaseUrl(name: keyof typeof sqliteFiles, env: NodeJS.ProcessEnv = process.env): string {
+export function testDatabaseUrl(name: keyof typeof sqliteFiles, env?: { DATABASE_URL?: string }): string {
+  const configured = env?.DATABASE_URL ?? process.env.DATABASE_URL ?? "";
   if (!usesPostgres(env)) return `file:${sqliteFiles[name]}`;
-  const url = new URL(env.DATABASE_URL ?? "");
+  const url = new URL(configured);
   url.searchParams.set("schema", name);
   return url.toString();
 }

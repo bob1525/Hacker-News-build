@@ -1,7 +1,7 @@
 export type SqlDialect = "sqlite" | "postgresql";
 
-export function sqlDialect(env: NodeJS.ProcessEnv = process.env): SqlDialect {
-  const url = env.DATABASE_URL ?? "";
+export function sqlDialect(env?: { DATABASE_URL?: string }): SqlDialect {
+  const url = env?.DATABASE_URL ?? process.env.DATABASE_URL ?? "";
   if (url.startsWith("postgresql://") || url.startsWith("postgres://")) return "postgresql";
   return "sqlite";
 }
