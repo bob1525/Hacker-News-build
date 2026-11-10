@@ -78,6 +78,15 @@ Duration    10.01s
 
 第二次推送的运行 [42857218752](https://github.com/bob1525/Hacker-News-build/actions/runs/42857218752)：`test` job [129973424655](https://github.com/bob1525/Hacker-News-build/actions/runs/42857218752/job/129973424655) 成功，约 1 分 50 秒，typecheck、单元测试和端到端都通过。`postgres` job [129973424343](https://github.com/bob1525/Hacker-News-build/actions/runs/42857218752/job/129973424343) 失败。`sqlDialect({})` 在没有 `DATABASE_URL` 字段时又回退到 `process.env`，而这个 job 的环境变量是 PostgreSQL，断言期望空对象表示 SQLite。传入的 env 现在只看自己的字段；省略参数时才读 `process.env`。
 
+第三次推送的运行 [42857634496](https://github.com/bob1525/Hacker-News-build/actions/runs/42857634496) 结论 success：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `postgres` [129974902706](https://github.com/bob1525/Hacker-News-build/actions/runs/42857634496/job/129974902706) | success | 2026-11-10 16:44:40Z 到 16:46:06Z，约 1 分 26 秒 |
+| `test` [129974903400](https://github.com/bob1525/Hacker-News-build/actions/runs/42857634496/job/129974903400) | success | 2026-11-10 16:44:40Z 到 16:47:00Z，约 2 分 20 秒 |
+
+`postgres` 再次在 `public`、`ranking_sql`、`concurrency` 三个 schema 上执行，24 个文件、137 个测试通过，耗时 10.96 秒。`test` job 是 137 个单元测试通过，端到端 `23 passed (1.0m)`。Node.js 20 弃用提示和 Ubuntu 26 提示没有让 job 失败。
+
 ## 发现的问题
 
 - 临时 schema 最初写在 `/tmp`。`prisma generate` 找不到 `package.json`，报 `inferred project root /`，并执行失败的 `npm i prisma@6.19.3`。改到 `node_modules/.cache` 后，validate 和 generate 都成功。
