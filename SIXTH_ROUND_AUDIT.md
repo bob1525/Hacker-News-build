@@ -27,7 +27,7 @@ npx playwright test
 | 2 PostgreSQL 上的单元测试 | [POSTGRES_TESTS.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/POSTGRES_TESTS.md) | `87af713252bbe3522c2f4358ebbcf2337a4bde1d`、`6801fad600bff0b3c7d8194c9c26e7bf84c19678`、`2afb70a79ae7e8159d7e8bb80db29814d207f898`、`0145946b52f8671197ac85d8644079a8537f111a` | 3 |
 | 3 PostgreSQL 迁移 SQL | [POSTGRES_MIGRATION.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/POSTGRES_MIGRATION.md) | `ee6969adf16967876bfab3203705bb90713acc28` | 0 |
 | 4 Newest 的 SQL 排序 | [RANKING_EXTEND.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/RANKING_EXTEND.md) | `a8d6b4c4c943ca33c0f35b733f7c7f96a3f84af6` | 2 |
-| 5 本审计 | [SIXTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SIXTH_ROUND_AUDIT.md) | 见本文件提交 | 0 |
+| 5 本审计 | [SIXTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SIXTH_ROUND_AUDIT.md) | `357ffd28aed90e4a4fedae77f1a859a0a71b6dbd` | 0 |
 
 ### 阶段 1
 
@@ -72,6 +72,15 @@ npm run test:e2e
 ```
 
 139 = 开工前的 130 + 9。23 个端到端测试没有增删。原有断言没有放宽。
+
+这次提交的 push 运行 [42858792514](https://github.com/bob1525/Hacker-News-build/actions/runs/42858792514) 结论 success：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `postgres` [129978980635](https://github.com/bob1525/Hacker-News-build/actions/runs/42858792514/job/129978980635) | success | 16:51:14Z 到 16:52:42Z，约 1 分 28 秒 |
+| `test` [129978981051](https://github.com/bob1525/Hacker-News-build/actions/runs/42858792514/job/129978981051) | success | 16:51:14Z 到 16:53:23Z，约 2 分 9 秒 |
+
+`postgres` 上 `ranking-sql` 为 8 个测试（含 Newest 的 2 个），全部单元测试 139。`test` job 为 139 个单元测试和 `23 passed (52.8s)`。Node.js 20 弃用提示和 Ubuntu 26 提示没有让 job 失败。
 
 ## 剩余限制
 
