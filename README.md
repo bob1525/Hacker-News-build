@@ -28,7 +28,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 - 注册、登录、退出。不能投票给自己的帖子或评论，可以取消已投的票。
 - 发布帖子：标题，外加 URL、正文，或两者都有。标题以 `Show HN:` 开头会出现在 Show 页；不填 URL 的文字帖出现在 Ask 页。
 - 首页按热度排序，New 页按时间排序，每页 30 条，底部有 More。
-- 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度下推到 SQL，见 [RANKING_DB.md](RANKING_DB.md)。
+- 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度和 Newest 下推到 SQL，搜索仍在内存里排序，见 [RANKING_DB.md](RANKING_DB.md) 和 [RANKING_EXTEND.md](RANKING_EXTEND.md)。
 - 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。
 - 空状态、加载骨架和表单错误提示。
 
@@ -71,7 +71,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### 速率限制和重复内容
 
-限制在服务端执行。超限返回 `Too many requests. Try again in N seconds.` 默认记在进程内存里。`RATE_LIMIT_BACKEND=sqlite` 改记到单独的 SQLite 文件，见 [RATE_LIMIT_PERSISTENCE.md](RATE_LIMIT_PERSISTENCE.md)。`RATE_LIMIT_BACKEND=redis` 加 `REDIS_URL` 则记到 Redis，见 [RATE_LIMIT_REDIS.md](RATE_LIMIT_REDIS.md)。Redis 连不上时请求被拒绝，不会悄悄退回内存。
+限制在服务端执行。超限返回 `Too many requests. Try again in N seconds.` 默认记在进程内存里。`RATE_LIMIT_BACKEND=sqlite` 改记到单独的 SQLite 文件，见 [RATE_LIMIT_PERSISTENCE.md](RATE_LIMIT_PERSISTENCE.md)。`RATE_LIMIT_BACKEND=redis` 加 `REDIS_URL` 则记到 Redis，检查和计数是一次 Lua `EVAL`，见 [RATE_LIMIT_REDIS.md](RATE_LIMIT_REDIS.md) 和 [REDIS_ATOMIC.md](REDIS_ATOMIC.md)。Redis 连不上时请求被拒绝，不会悄悄退回内存。
 
 | 动作 | 上限 | 窗口 |
 | --- | --- | --- |
@@ -162,6 +162,14 @@ npx tsx scripts/scale-bench.ts
 - [POSTGRES_CI.md](POSTGRES_CI.md)
 - [RANKING_DB.md](RANKING_DB.md)
 - [FIFTH_ROUND_AUDIT.md](FIFTH_ROUND_AUDIT.md)
+
+第六轮把 Redis 限流收成一次调用，让单元测试连上 PostgreSQL，并补了迁移 SQL 和 Newest 的 SQL 排序：
+
+- [REDIS_ATOMIC.md](REDIS_ATOMIC.md)
+- [POSTGRES_TESTS.md](POSTGRES_TESTS.md)
+- [POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md)
+- [RANKING_EXTEND.md](RANKING_EXTEND.md)
+- [SIXTH_ROUND_AUDIT.md](SIXTH_ROUND_AUDIT.md)
 
 ## 截图
 
