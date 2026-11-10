@@ -28,6 +28,14 @@
 - 作者可以在发表后 15 分钟内（含整 15 分钟）编辑自己的评论。超时、别人的评论、未登录或已删除都会被拒绝。编辑后页面显示 `edited`。
 - 作者可以随时软删除自己的评论。页面和接口对外显示「已删除」，回复留在树里，不能再编辑或投票。原文仍留在数据库里，不再发回浏览器。
 
+评论投票后，箭头是已投票状态：
+
+![评论投票](docs/screenshots/comment-vote.png)
+
+软删除后正文显示「已删除」：
+
+![已删除的评论](docs/screenshots/comment-deleted.png)
+
 ### 收藏和关注
 
 - 登录用户可以收藏或取消收藏帖子，包括自己的帖子。收藏不改变点数，也不改变 karma。
@@ -35,6 +43,18 @@
 - 登录用户可以关注或取消关注其他用户。不能关注自己。
 - 个人主页显示 followers 和 following。自己看自己的主页没有关注按钮。
 - 登录后顶栏有 `/following`。这个页面只列出你关注的人发布的帖子，仍按首页热度排序。还没关注任何人时是空状态；未登录访问会要求先登录。
+
+个人主页里的收藏列表：
+
+![收藏列表](docs/screenshots/profile-favorites.png)
+
+个人主页上的粉丝数和关注数。下面这张是 demo 关注 pg 之后，pg 的 followers 变成 1：
+
+![关注与粉丝](docs/screenshots/profile-following-count.png)
+
+`/following` 只显示被关注作者的帖子：
+
+![关注的人的帖子](docs/screenshots/following-page.png)
 
 ### 速率限制和重复内容
 
@@ -144,6 +164,8 @@ npx tsx scripts/scale-bench.ts
 窄屏首页：
 
 ![窄屏首页](docs/screenshots/home-mobile.png)
+
+评论投票、软删除、收藏、粉丝数和关注页的图放在上面对应功能旁边，文件分别是 `comment-vote.png`、`comment-deleted.png`、`profile-favorites.png`、`profile-following-count.png`、`following-page.png`。
 
 ## 目录
 
