@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Install Google Chrome
+        run: |
+          if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
+            wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+            sudo apt-get update
+            sudo apt-get install -y /tmp/chrome.deb
+          fi
+          google-chrome --version || google-chrome-stable --version
+
+      - name: Install Playwright system libraries
+        run: npx playwright install-deps chrome
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+        env:
+          CI: true
+          AUTH_SECRET: ci-auth-secret-not-for-production-use-32
+
+  # Separate from `test`. The default path stays the SQLite job above.
+  # This job generates a PostgreSQL Prisma client and runs the unit tests on it.
+  # Checked-in migrations are SQLite SQL, so the push uses a temporary copy.
+  postgres:
+    name: postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hn
+          POSTGRES_PASSWORD: hn
+          POSTGRES_DB: hackernews
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hn -d hackernews"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://hn:hn@localhost:5432/hackernews?schema=public
+      AUTH_SECRET: ci-auth-secret-not-for-production-use-32
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate the PostgreSQL client and push the schema
+        run: bash scripts/push-postgres-schema.sh
+
+      - name: Unit tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://hn:hn@localhost:5432/hackernews?schema=public
+          AUTH_SECRET: ci-auth-secret-not-for-production-use-32

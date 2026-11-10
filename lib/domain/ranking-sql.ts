@@ -1,0 +1,249 @@
+import type { PrismaClient } from "@prisma/client";
+import { sqlDialect, type SqlDialect } from "@/lib/sql-dialect";
+import type { FeedFilter } from "@/lib/types";
+
+const NEWTON_STEPS = 20;
+
+export type HotPage = {
+  ids: string[];
+  page: number;
+  hasMore: boolean;
+  total: number;
+};
+
+/**
+ * Hot order in SQL.
+ * Prisma's SQLite build has no power(), so (ageHours + 2) ^ 1.8 is the fifth
+ * root of x^9, refined with 20 Newton steps. That stays within about 1e-15
+ * relative error for x up to 100000 (roughly 11 years). Same points and the
+ * same createdAt then sort by id descending.
+ */
+export async function pageHotPostIds(
+  db: PrismaClient,
+  options: {
+    now: Date;
+    page: number;
+    pageSize: number;
+    filter?: FeedFilter;
+    authorIds?: string[];
+    ids?: string[];
+  },
+): Promise<HotPage> {
+  const size = Number.isFinite(options.pageSize) && options.pageSize > 0 ? Math.floor(options.pageSize) : 1;
+  const page = Number.isInteger(options.page) && options.page > 0 ? options.page : 1;
+  const offset = (page - 1) * size;
+  if ((options.authorIds && options.authorIds.length === 0) || (options.ids && options.ids.length === 0)) {
+    return { ids: [], page, hasMore: false, total: 0 };
+  }
+  if (sqlDialect() === "postgresql") return pageHotPostIdsPostgres(db, options, size, page, offset);
+  const where = hotWhere(options);
+  const nowMs = options.now.getTime();
+
+  const totalRows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+    `SELECT COUNT(*) AS total FROM Post p WHERE ${where.sql}`,
+    ...where.params,
+  );
+  const total = Number(totalRows[0]?.total ?? 0);
+  if (offset >= total) {
+    return { ids: [], page, hasMore: false, total };
+  }
+
+  const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
+    `
+    WITH grouped AS (
+      SELECT p.id AS id, p.createdAt AS createdAt, COUNT(v.userId) AS points
+      FROM Post p
+      LEFT JOIN PostVote v ON v.postId = p.id
+      WHERE ${where.sql}
+      GROUP BY p.id
+    ),
+    base AS (
+      SELECT
+        id,
+        createdAt,
+        points,
+        (CASE WHEN (? - createdAt) > 0 THEN (? - createdAt) ELSE 0 END) / 3600000.0 + 2.0 AS x
+      FROM grouped
+    ),
+    pow AS (
+      SELECT
+        id,
+        createdAt,
+        points,
+        0 AS step,
+        x * x AS y,
+        x * x * x * x * x * x * x * x * x AS a
+      FROM base
+      UNION ALL
+      SELECT
+        id,
+        createdAt,
+        points,
+        step + 1,
+        (4.0 * y + a / ((y * y) * (y * y))) / 5.0,
+        a
+      FROM pow
+      WHERE step < ${NEWTON_STEPS}
+    )
+    SELECT id
+    FROM pow
+    WHERE step = ${NEWTON_STEPS}
+    ORDER BY ((points - 1) * 1.0 / y) DESC, createdAt DESC, id DESC
+    LIMIT ? OFFSET ?
+    `,
+    ...where.params,
+    nowMs,
+    nowMs,
+    size,
+    offset,
+  );
+
+  return {
+    ids: rows.map((row) => row.id),
+    page,
+    hasMore: offset + size < total,
+    total,
+  };
+}
+
+/** Newest order in SQL: createdAt descending, then id descending. */
+export async function pageNewestPostIds(
+  db: PrismaClient,
+  options: {
+    page: number;
+    pageSize: number;
+    filter?: FeedFilter;
+    authorIds?: string[];
+    ids?: string[];
+  },
+): Promise<HotPage> {
+  const size = Number.isFinite(options.pageSize) && options.pageSize > 0 ? Math.floor(options.pageSize) : 1;
+  const page = Number.isInteger(options.page) && options.page > 0 ? options.page : 1;
+  const offset = (page - 1) * size;
+  if ((options.authorIds && options.authorIds.length === 0) || (options.ids && options.ids.length === 0)) {
+    return { ids: [], page, hasMore: false, total: 0 };
+  }
+  const dialect = sqlDialect();
+  const where = hotWhere(options, dialect);
+  const quoted = dialect === "postgresql";
+  const table = quoted ? '"Post"' : "Post";
+  const idCol = quoted ? 'p."id"' : "p.id";
+  const createdCol = quoted ? 'p."createdAt"' : "p.createdAt";
+  const limit = quoted ? `$${where.nextIndex}` : "?";
+  const offsetSql = quoted ? `$${where.nextIndex + 1}` : "?";
+  const countExpr = quoted ? "COUNT(*)::int" : "COUNT(*)";
+  const totalRows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+    `SELECT ${countExpr} AS total FROM ${table} p WHERE ${where.sql}`,
+    ...where.params,
+  );
+  const total = Number(totalRows[0]?.total ?? 0);
+  if (offset >= total) return { ids: [], page, hasMore: false, total };
+  const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
+    `SELECT ${idCol} AS id FROM ${table} p WHERE ${where.sql} ORDER BY ${createdCol} DESC, ${idCol} DESC LIMIT ${limit} OFFSET ${offsetSql}`,
+    ...where.params,
+    size,
+    offset,
+  );
+  return {
+    ids: rows.map((row) => row.id),
+    page,
+    hasMore: offset + size < total,
+    total,
+  };
+}
+
+/**
+ * PostgreSQL stores DateTime as timestamp(3), has power(), and quotes identifiers.
+ * The score is the same (points - 1) / (ageHours + 2) ^ 1.8 expression as the
+ * memory sort. SQLite keeps the Newton script above because its Prisma build
+ * has no power().
+ */
+async function pageHotPostIdsPostgres(
+  db: PrismaClient,
+  options: {
+    now: Date;
+    page: number;
+    pageSize: number;
+    filter?: FeedFilter;
+    authorIds?: string[];
+    ids?: string[];
+  },
+  size: number,
+  page: number,
+  offset: number,
+): Promise<HotPage> {
+  const where = hotWhere(options, "postgresql");
+  const nowIndex = where.nextIndex;
+  const limitIndex = nowIndex + 1;
+  const offsetIndex = nowIndex + 2;
+  const totalRows = await db.$queryRawUnsafe<Array<{ total: number | bigint }>>(
+    `SELECT COUNT(*)::int AS total FROM "Post" p WHERE ${where.sql}`,
+    ...where.params,
+  );
+  const total = Number(totalRows[0]?.total ?? 0);
+  if (offset >= total) return { ids: [], page, hasMore: false, total };
+
+  const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
+    `
+    WITH grouped AS (
+      SELECT p."id" AS id, p."createdAt" AS "createdAt", COUNT(v."userId")::int AS points
+      FROM "Post" p
+      LEFT JOIN "PostVote" v ON v."postId" = p."id"
+      WHERE ${where.sql}
+      GROUP BY p."id", p."createdAt"
+    )
+    SELECT id
+    FROM grouped
+    ORDER BY (
+      (points - 1)::float / power(
+        GREATEST(
+          EXTRACT(EPOCH FROM ($${nowIndex}::timestamptz - ("createdAt" AT TIME ZONE 'UTC'))),
+          0
+        ) / 3600.0 + 2.0,
+        1.8
+      )
+    ) DESC, "createdAt" DESC, id DESC
+    LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `,
+    ...where.params,
+    options.now,
+    size,
+    offset,
+  );
+  return {
+    ids: rows.map((row) => row.id),
+    page,
+    hasMore: offset + size < total,
+    total,
+  };
+}
+
+function hotWhere(
+  options: { filter?: FeedFilter; authorIds?: string[]; ids?: string[] },
+  dialect: SqlDialect = "sqlite",
+): {
+  sql: string;
+  params: Array<string>;
+  nextIndex: number;
+} {
+  const clauses: string[] = [];
+  const params: string[] = [];
+  let nextIndex = 1;
+  const mark = () => (dialect === "postgresql" ? `$${nextIndex++}` : (nextIndex += 1, "?"));
+  const column = (name: string) => (dialect === "postgresql" ? `"${name}"` : name);
+  if (options.filter === "ask") clauses.push(`p.${column("url")} IS NULL`);
+  if (options.filter === "show") {
+    clauses.push(
+      dialect === "postgresql" ? `strpos(p."title", 'Show HN:') = 1` : "instr(p.title, 'Show HN:') = 1",
+    );
+  }
+  if (options.authorIds && options.authorIds.length > 0) {
+    clauses.push(`p.${column("authorId")} IN (${options.authorIds.map(() => mark()).join(", ")})`);
+    params.push(...options.authorIds);
+  }
+  if (options.ids && options.ids.length > 0) {
+    clauses.push(`p.${column("id")} IN (${options.ids.map(() => mark()).join(", ")})`);
+    params.push(...options.ids);
+  }
+  return { sql: clauses.length > 0 ? clauses.join(" AND ") : "1 = 1", params, nextIndex };
+}
