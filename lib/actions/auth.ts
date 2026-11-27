@@ -1,10 +1,9 @@
 "use server";
 
-import { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { unstable_rethrow } from "next/navigation";
+import { afterRegistrationPath, registerUnverifiedAccount } from "@/lib/account-registration";
 import { prisma } from "@/lib/db";
-import { issueEmailVerification } from "@/lib/email-verification-store";
 import { safeNextPath } from "@/lib/domain/url";
 import { createMailer } from "@/lib/mailer";
 import { hashPassword, verifyPassword } from "@/lib/password";
@@ -45,36 +44,34 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     return { error: "Check the highlighted fields.", fieldErrors: fieldErrors(parsed.error) };
   }
 
+  let nextPath = safeNextPath(formString(formData, "next"));
   try {
     const passwordHash = await hashPassword(parsed.data.password);
-    const user = await prisma.user.create({
-      data: {
-        username: parsed.data.username,
-        email: parsed.data.email,
-        passwordHash,
-        about: "",
-      },
-    });
-    try {
-      const baseUrl = process.env.APP_BASE_URL?.trim() || "http://localhost:3000";
-      await issueEmailVerification(prisma, createMailer(), user, new Date(), baseUrl);
-    } catch (mailError) {
-      rethrowNext(mailError);
+    const baseUrl = process.env.APP_BASE_URL?.trim() || "http://localhost:3000";
+    const result = await registerUnverifiedAccount(
+      prisma,
+      createMailer(),
+      { username: parsed.data.username, email: parsed.data.email, passwordHash },
+      new Date(),
+      baseUrl,
+    );
+    if (!result.ok) {
+      if (result.field === "email") {
+        return { error: result.error, fieldErrors: { email: "Already registered." } };
+      }
+      if (result.field === "username") {
+        return { error: result.error, fieldErrors: { username: "Already taken." } };
+      }
+      return { error: result.error };
     }
-    await setSession(user.id);
+    await setSession(result.userId);
+    nextPath = afterRegistrationPath(result.mailed, nextPath);
   } catch (error) {
     rethrowNext(error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      const target = Array.isArray(error.meta?.target) ? error.meta.target.join(" ") : String(error.meta?.target ?? "");
-      if (target.toLowerCase().includes("email")) {
-        return { error: "That email is already registered.", fieldErrors: { email: "Already registered." } };
-      }
-      return { error: "That username is taken.", fieldErrors: { username: "Already taken." } };
-    }
     return { error: "Could not create the account. Please try again." };
   }
 
-  redirect(safeNextPath(formString(formData, "next")));
+  redirect(nextPath);
 }
 
 export async function logout(): Promise<void> {

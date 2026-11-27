@@ -6,7 +6,7 @@ import {
   verificationExpiry,
   verificationLink,
 } from "@/lib/domain/email-verification";
-import type { Mailer } from "@/lib/mailer";
+import { MailDeliveryError, type Mailer } from "@/lib/mailer";
 
 export type VerificationUser = { id: string; email: string; username: string };
 
@@ -28,11 +28,16 @@ export async function issueEmailVerification(
     },
   });
   const link = verificationLink(baseUrl, secret.raw);
-  await mailer.send({
-    to: user.email,
-    subject: "Verify your email",
-    text: `Hi ${user.username}, open this link within 24 hours to verify your email:\n${link}\n`,
-  });
+  try {
+    await mailer.send({
+      to: user.email,
+      subject: "Verify your email",
+      text: `Hi ${user.username}, open this link within 24 hours to verify your email:\n${link}\n`,
+    });
+  } catch (error) {
+    if (error instanceof MailDeliveryError) throw error;
+    throw new MailDeliveryError();
+  }
   return { raw: secret.raw };
 }
 
