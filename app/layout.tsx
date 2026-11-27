@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { GuestCollapseSync } from "@/components/guest-collapse-sync";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,7 +22,8 @@ export const viewport: Viewport = {
 
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const viewer = await getCurrentUser();
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col bg-hn-bg font-sans text-black antialiased">
@@ -28,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           Skip to content
         </a>
         <SiteHeader />
+        <GuestCollapseSync viewerId={viewer?.id ?? null} />
         <div id="content" className="mx-auto w-full max-w-[980px] flex-1">
           {children}
         </div>

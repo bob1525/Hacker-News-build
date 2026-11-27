@@ -2,7 +2,7 @@
 
 import { unstable_rethrow } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { persistCommentCollapsed } from "@/lib/comment-collapse";
+import { mergeGuestCollapses, persistCommentCollapsed } from "@/lib/comment-collapse";
 import { prisma } from "@/lib/db";
 import type { ActionResult } from "@/lib/types";
 
@@ -23,5 +23,20 @@ export async function setCommentCollapsed(
   } catch (error) {
     unstable_rethrow(error);
     return { ok: false, error: "Could not save the collapsed comment. Please try again." };
+  }
+}
+
+export async function mergeGuestCollapsesAction(
+  commentIds: unknown,
+): Promise<ActionResult<{ merged: string[]; missing: string[]; skipped: string[] }>> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Log in to save collapsed comments." };
+  if (!Array.isArray(commentIds)) return { ok: false, error: "Could not save collapsed comments." };
+  try {
+    const result = await mergeGuestCollapses(prisma, user.id, commentIds);
+    return { ok: true, data: result };
+  } catch (error) {
+    unstable_rethrow(error);
+    return { ok: false, error: "Could not save collapsed comments. Please try again." };
   }
 }

@@ -15,3 +15,12 @@ export function parseCollapsedIds(raw: string | null): string[] {
 export function toggleCollapsedId(ids: readonly string[], id: string): string[] {
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
+
+/** Ids still waiting in this browser after a merge. Merged and missing ids are dropped; the rest stay. */
+export function guestCollapseRemainder(
+  ids: readonly string[],
+  result: { merged: readonly string[]; missing: readonly string[] },
+): string[] {
+  const drop = new Set([...result.merged, ...result.missing]);
+  return ids.filter((id) => !drop.has(id));
+}

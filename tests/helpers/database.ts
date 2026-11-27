@@ -7,6 +7,7 @@ const sqliteFiles: Record<string, string> = {
   ranking_sql: "/tmp/hn-ranking-sql.db",
   search: "/tmp/hn-search.db",
   collapse: "/tmp/hn-collapse.db",
+  collapseSync: "/tmp/hn-collapse-sync.db",
   email: "/tmp/hn-email.db",
   emailDelivery: "/tmp/hn-email-delivery.db",
   passwordReset: "/tmp/hn-password-reset.db",
