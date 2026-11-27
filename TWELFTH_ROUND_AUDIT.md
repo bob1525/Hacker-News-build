@@ -12,7 +12,7 @@
 | 2 剩余全折叠 | [SEARCH_FOLD_V3.md](SEARCH_FOLD_V3.md) | `531790e3df073b7b8d5f044a34d6bb2201a134e4` | 3 个单元 |
 | 3 合并访客折叠 | [COLLAPSE_SYNC.md](COLLAPSE_SYNC.md) | `656c5bebe2c8f21abf66ad0918337b85c269aec2` | 3 个单元 |
 | 4 生产日志与端到端 | [LEFTOVER_HARDENING_V5.md](LEFTOVER_HARDENING_V5.md) | `afb4ce627be5e55d3c11eec804b7bc240cf391b5` | 3 个单元、2 个端到端 |
-| 5 本审计 | [TWELFTH_ROUND_AUDIT.md](TWELFTH_ROUND_AUDIT.md) | 本文件 | 0 |
+| 5 本审计 | [TWELFTH_ROUND_AUDIT.md](TWELFTH_ROUND_AUDIT.md) | `cdac0a07bb7a9a296fd2c550ce8a6a2d2ed832ca` | 0 |
 
 阶段 1：新增 `Session` 表。JWT 带 `sid`。个人页列出仍有效的设备，可以只撤销其中一台，不增加 `sessionVersion`。没有 `sid` 的旧 cookie 即使版本匹配也按 `legacy` 拒绝。密码重置、确认换邮箱和「Sign out other devices」仍加版本，并撤销该用户尚未作废的设备行。SQLite 迁移 `20261127180000_session`，PostgreSQL `prisma/migrations-postgres/0009_session.sql`。`session-revoke` 里旧 cookie 的断言加上了 `sessionId: null`，版本匹配没有放宽。
 
@@ -22,7 +22,7 @@
 
 阶段 4：生产环境的 console 标准输出和 `MAIL_LOG_PATH` 都只留收件人和主题。非生产仍写全文。端到端的令牌从本机 SMTP 收件箱读取，应用里没有生产环境写回令牌的开关。新增单独撤设备和登录后折叠仍在的端到端。截图 `docs/screenshots/devices.png`、`docs/screenshots/collapse-sync.png`。
 
-阶段 5：本文件，加上 README 里第十二轮五份文档的索引。没有新增测试。审计头的 CI 在它跑完之后另用一笔只记录结果的提交写回，不开始第十三轮。
+阶段 5：本文件，加上 README 里第十二轮五份文档的索引。没有新增测试。审计正文在 `cdac0a07bb7a9a296fd2c550ce8a6a2d2ed832ca`。这一笔只补上该提交的 CI，没有改测试。不开始第十三轮。
 
 ## 怎么验证
 
@@ -83,6 +83,14 @@ pull_request 运行 [46050779855](https://github.com/bob1525/Hacker-News-build/a
 | `postgres` [140681242264](https://github.com/bob1525/Hacker-News-build/actions/runs/46050779855/job/140681242264) | success |
 | `redis` [140681242230](https://github.com/bob1525/Hacker-News-build/actions/runs/46050779855/job/140681242230) | success |
 
+审计提交 `cdac0a07bb7a9a296fd2c550ce8a6a2d2ed832ca` 只改了 README 索引和本文件。它的 push 运行 [46051228402](https://github.com/bob1525/Hacker-News-build/actions/runs/46051228402) 和 pull_request 运行 [46051234801](https://github.com/bob1525/Hacker-News-build/actions/runs/46051234801) 结论都是 success：
+
+| job | push | pull_request |
+| --- | --- | --- |
+| `test` | success [140682747692](https://github.com/bob1525/Hacker-News-build/actions/runs/46051228402/job/140682747692) | success [140682769259](https://github.com/bob1525/Hacker-News-build/actions/runs/46051234801/job/140682769259) |
+| `postgres` | success [140682747957](https://github.com/bob1525/Hacker-News-build/actions/runs/46051228402/job/140682747957) | success [140682768863](https://github.com/bob1525/Hacker-News-build/actions/runs/46051234801/job/140682768863) |
+| `redis` | success [140682748037](https://github.com/bob1525/Hacker-News-build/actions/runs/46051228402/job/140682748037) | success [140682769110](https://github.com/bob1525/Hacker-News-build/actions/runs/46051234801/job/140682769110) |
+
 ## 证据
 
 2026-11-27 18:09 UTC，改代码之前，头提交 `671db34`：
@@ -115,5 +123,6 @@ npm run test:e2e
 - 搜索窗口仍只给排到当前页为止的行打分。
 - `next typegen` 不检查 `AUTH_SECRET`。`next dev` 和 `next start` 会检查。
 - Prisma 的 SQLite `DateTime` 写不进大约公元 886 年以前。
+- 审计头 `cdac0a0` 的 `test`、`postgres`、`redis` 已经成功。这一笔只把那次结果写进本文件，不再为记录提交本身另开一轮。
 
 本轮在阶段 5 结束。不开始第十三轮。
