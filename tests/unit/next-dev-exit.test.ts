@@ -44,4 +44,31 @@ describe("next dev exit code", () => {
     expect(result.output).toMatch(/AUTH_SECRET is too short/);
     expect(result.code).toBe(1);
   }, 100_000);
+
+  it("exits 1 for npx next dev when AUTH_SECRET is unacceptable", async () => {
+    const result = await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+      const child = spawn(process.execPath, ["./node_modules/next/dist/bin/next", "dev", "--port", "3218"], {
+        env: { ...process.env, AUTH_SECRET: "too-short" },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let output = "";
+      const timer = setTimeout(() => {
+        child.kill("SIGTERM");
+        reject(new Error(`npx next dev did not exit\n${output.slice(-2000)}`));
+      }, 90_000);
+      child.stdout.on("data", (chunk: Buffer) => {
+        output += chunk.toString();
+      });
+      child.stderr.on("data", (chunk: Buffer) => {
+        output += chunk.toString();
+      });
+      child.on("exit", (code) => {
+        clearTimeout(timer);
+        resolve({ code, output });
+      });
+    });
+
+    expect(result.output).toMatch(/AUTH_SECRET is too short/);
+    expect(result.code).toBe(1);
+  }, 100_000);
 });

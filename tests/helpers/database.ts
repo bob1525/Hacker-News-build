@@ -10,6 +10,7 @@ const sqliteFiles: Record<string, string> = {
   email: "/tmp/hn-email.db",
   downvotes: "/tmp/hn-downvotes.db",
   depth: "/tmp/hn-comment-depth.db",
+  searchWindow: "/tmp/hn-search-window.db",
 };
 
 export function usesPostgres(env?: { DATABASE_URL?: string }): boolean {

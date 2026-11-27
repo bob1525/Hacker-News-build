@@ -34,7 +34,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### 评论
 
-- 多层回复最多 16 层，可以折叠。第 16 层不再显示回复入口。缩进每层 12 像素，到 120 像素后不再变宽。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户仍用当前浏览器会话的 `sessionStorage`（键 `hn-collapsed-comments`），见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
+- 多层回复最多 16 层，可以折叠。第 16 层不再显示回复入口。缩进每层 12 像素，到 120 像素后不再变宽。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户写在这个浏览器的 `localStorage`（键 `hn-collapsed-comments`），关掉标签页后再打开仍在，见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
 - 排序规则：先按票数降序，票数相同再按时间升序（更早的在前）。票数和时间都相同则按 id 字典序。没有票的线程因此仍是从旧到新。
 - 登录用户可以给别人的评论 upvote，再点一次取消。不能给自己的评论投票，也不能给已软删除的评论投票。
 - Karma 是别人投给你的帖子票和评论票之和。自己投自己的不计。取消评论票会把对应 karma 减回去。软删除不撤销已经投出的票，karma 保持原样。

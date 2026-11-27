@@ -27,6 +27,7 @@ export async function pageHotPostIds(
     filter?: FeedFilter;
     authorIds?: string[];
     ids?: string[];
+    extra?: (bind: (value: string | number) => string) => string;
   },
 ): Promise<HotPage> {
   const size = Number.isFinite(options.pageSize) && options.pageSize > 0 ? Math.floor(options.pageSize) : 1;
@@ -167,6 +168,7 @@ async function pageHotPostIdsPostgres(
     filter?: FeedFilter;
     authorIds?: string[];
     ids?: string[];
+    extra?: (bind: (value: string | number) => string) => string;
   },
   size: number,
   page: number,
@@ -219,15 +221,20 @@ async function pageHotPostIdsPostgres(
 }
 
 function hotWhere(
-  options: { filter?: FeedFilter; authorIds?: string[]; ids?: string[] },
+  options: {
+    filter?: FeedFilter;
+    authorIds?: string[];
+    ids?: string[];
+    extra?: (bind: (value: string | number) => string) => string;
+  },
   dialect: SqlDialect = "sqlite",
 ): {
   sql: string;
-  params: Array<string>;
+  params: Array<string | number>;
   nextIndex: number;
 } {
   const clauses: string[] = [];
-  const params: string[] = [];
+  const params: Array<string | number> = [];
   let nextIndex = 1;
   const mark = () => (dialect === "postgresql" ? `$${nextIndex++}` : (nextIndex += 1, "?"));
   const column = (name: string) => (dialect === "postgresql" ? `"${name}"` : name);
@@ -244,6 +251,12 @@ function hotWhere(
   if (options.ids && options.ids.length > 0) {
     clauses.push(`p.${column("id")} IN (${options.ids.map(() => mark()).join(", ")})`);
     params.push(...options.ids);
+  }
+  if (options.extra) {
+    clauses.push(`(${options.extra((value) => {
+      params.push(value);
+      return mark();
+    })})`);
   }
   return { sql: clauses.length > 0 ? clauses.join(" AND ") : "1 = 1", params, nextIndex };
 }

@@ -60,8 +60,8 @@ describe("comment collapse persistence", () => {
     expect(await listCollapsedCommentIds(db, user.id)).toEqual([]);
   });
 
-  it("uses the database for a logged-in viewer and session storage otherwise", () => {
+  it("uses the database for a logged-in viewer and local storage otherwise", () => {
     expect(collapseStorage("user-1")).toBe("database");
-    expect(collapseStorage(null)).toBe("session");
+    expect(collapseStorage(null)).toBe("local");
   });
 });

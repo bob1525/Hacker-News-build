@@ -7,8 +7,9 @@ import { paginate } from "@/lib/domain/pagination";
 import { pageHotPostIds, pageNewestPostIds } from "@/lib/domain/ranking-sql";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
 import { rankingBackend } from "@/lib/ranking-backend";
-import { pageSearchResults, tokenize } from "@/lib/domain/search";
+import { tokenize } from "@/lib/domain/search";
 import { searchPostSql } from "@/lib/sql-dialect";
+import { loadSearchWindow } from "@/lib/search-window-db";
 import { getKarma } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { CommentDTO, FeedFilter, FeedSort, PostCard, ProfileComment, RecentComment } from "@/lib/types";
@@ -135,31 +136,14 @@ export async function getFeed(options: {
   const now = new Date();
   if (query) {
     if (tokenize(query).length === 0) return { items: [], page, hasMore: false, total: 0 };
-    const ids = await searchPostIds(query);
-    if (ids.length === 0) return { items: [], page, hasMore: false, total: 0 };
-    const candidates = await prisma.post.findMany({
-      where: feedWhere(filter, ids, options.authorIds),
-      select: {
-        id: true,
-        title: true,
-        text: true,
-        createdAt: true,
-      },
-    });
-    const candidatePoints = await postPointMap(candidates.map((row) => row.id));
-    const ranked = pageSearchResults(
-      candidates.map((row) => ({
-        id: row.id,
-        title: row.title,
-        text: row.text,
-        points: candidatePoints.get(row.id) ?? 0,
-        createdAt: row.createdAt,
-      })),
+    const ranked = await loadSearchWindow(prisma, {
       query,
       page,
-      PAGE_SIZE,
+      pageSize: PAGE_SIZE,
       now,
-    );
+      filter,
+      authorIds: options.authorIds,
+    });
     if (ranked.items.length === 0) {
       return { items: [], page: ranked.page, hasMore: ranked.hasMore, total: ranked.total };
     }

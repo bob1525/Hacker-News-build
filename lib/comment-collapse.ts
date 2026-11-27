@@ -1,8 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 
-/** Logged-in collapse lives in the database. Logged-out collapse stays in sessionStorage. */
-export function collapseStorage(viewerId: string | null): "database" | "session" {
-  return viewerId ? "database" : "session";
+/** Logged-in collapse lives in the database. Logged-out collapse stays in this browser's localStorage. */
+export function collapseStorage(viewerId: string | null): "database" | "local" {
+  return viewerId ? "database" : "local";
 }
 
 export async function listCollapsedCommentIds(

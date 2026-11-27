@@ -200,7 +200,7 @@ export function CommentThread({
 
   useEffect(() => {
     if (viewerId) return;
-    setCollapsedIds(parseCollapsedIds(sessionStorage.getItem(COLLAPSED_COMMENTS_KEY)));
+    setCollapsedIds(parseCollapsedIds(localStorage.getItem(COLLAPSED_COMMENTS_KEY)));
   }, [viewerId]);
 
   async function onToggle(id: string) {
@@ -208,7 +208,7 @@ export function CommentThread({
     const next = toggleCollapsedId(previous, id);
     setCollapsedIds(next);
     if (!viewerId) {
-      sessionStorage.setItem(COLLAPSED_COMMENTS_KEY, JSON.stringify(next));
+      localStorage.setItem(COLLAPSED_COMMENTS_KEY, JSON.stringify(next));
       return;
     }
     const result = await setCommentCollapsed(id, next.includes(id));
