@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  username     String        @unique
+  email        String        @unique
+  passwordHash    String
+  sessionVersion  Int           @default(0)
+  about           String        @default("")
+  emailVerifiedAt DateTime?
+  createdAt       DateTime      @default(now())
+  posts           Post[]
+  comments     Comment[]
+  postVotes    PostVote[]
+  commentVotes CommentVote[]
+  favorites    Favorite[]
+  following    Follow[]      @relation("UserFollows")
+  followers    Follow[]      @relation("UserFollowers")
+  collapses      CommentCollapse[]
+  emailTokens    EmailVerificationToken[]
+  passwordResets PasswordResetToken[]
+  emailChanges   EmailChangeToken[]
+  sessions       Session[]
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent  String    @default("")
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime
+  revokedAt  DateTime?
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmailChangeToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newEmail  String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Post {
+  id        String     @id @default(cuid())
+  title     String
+  url       String?
+  text      String     @default("")
+  titleFold String     @default("")
+  textFold  String     @default("")
+  authorId  String
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  comments  Comment[]
+  votes     PostVote[]
+  favorites Favorite[]
+
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  text      String
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  postId    String
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?      @relation("Thread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]     @relation("Thread")
+  createdAt DateTime      @default(now())
+  editedAt  DateTime?
+  deletedAt DateTime?
+  votes     CommentVote[]
+  collapses CommentCollapse[]
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model Favorite {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([userId, createdAt])
+}
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollows", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model PostVote {
+  userId    String
+  postId    String
+  value     Int      @default(1)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model CommentCollapse {
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([userId])
+  @@index([commentId])
+}
+
+model CommentVote {
+  userId    String
+  commentId String
+  value     Int      @default(1)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
+}

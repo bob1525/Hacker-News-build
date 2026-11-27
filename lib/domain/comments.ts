@@ -1,0 +1,160 @@
+import { COMMENT_INDENT_CAP_PX, COMMENT_INDENT_PX, MAX_COMMENT_DEPTH } from "@/lib/config";
+
+export type ThreadNode<T> = T & { replies: ThreadNode<T>[] };
+
+/** True when a reply to a comment at parentDepth would still be inside the cap. */
+export function canReplyAtDepth(parentDepth: number, maxDepth = MAX_COMMENT_DEPTH): boolean {
+  return Number.isInteger(parentDepth) && parentDepth >= 1 && parentDepth < maxDepth;
+}
+
+export function replyDepthError(maxDepth = MAX_COMMENT_DEPTH): string {
+  return `Replies only nest ${maxDepth} levels deep.`;
+}
+
+/** Visual indent. Levels past the pixel cap stay at the cap and still render. */
+export function commentIndentPx(depth: number): number {
+  if (!Number.isFinite(depth) || depth <= 0) return 0;
+  return Math.min(depth * COMMENT_INDENT_PX, COMMENT_INDENT_CAP_PX);
+}
+
+/**
+ * Left margin for one nested row. Rows are nested, so this is the step that
+ * makes the margins add up to commentIndentPx. Past the cap the step is 0.
+ */
+export function commentIndentStepPx(depth: number): number {
+  if (!Number.isFinite(depth) || depth <= 0) return 0;
+  return commentIndentPx(depth) - commentIndentPx(depth - 1);
+}
+
+/**
+ * Nested rows draw a left border and padding only while the indent is still
+ * growing. Depths 11–16 already sit at the 120px cap, so another border would
+ * keep shifting them right.
+ */
+export function commentThreadGutter(depth: number): boolean {
+  return commentIndentStepPx(depth) > 0;
+}
+
+/**
+ * Depths 11–16 share the 120px indent. A numeric mark tells them apart
+ * without pushing the thread any wider.
+ */
+export function commentDepthMark(depth: number): string | null {
+  if (!Number.isFinite(depth) || depth < 11) return null;
+  return String(Math.floor(depth));
+}
+
+/**
+ * Depth of a comment, counting itself as 1. Walks parents and stops on a cycle
+ * or past the cap so a loop cannot run forever.
+ */
+export async function ancestorDepth(
+  startId: string,
+  parentOf: (id: string) => Promise<string | null | undefined> | string | null | undefined,
+  maxDepth = MAX_COMMENT_DEPTH,
+): Promise<number> {
+  let depth = 1;
+  let current: string | null = startId;
+  const seen = new Set<string>();
+  while (current) {
+    if (seen.has(current)) return depth;
+    seen.add(current);
+    const parentId = await parentOf(current);
+    if (!parentId) break;
+    current = parentId;
+    depth += 1;
+    if (depth > maxDepth + 2) break;
+  }
+  return depth;
+}
+
+/**
+ * Siblings: more points first. Equal points stay oldest-first, then id.
+ * Missing points count as zero, so unvoted threads keep the previous order.
+ */
+function byPointsThenOldest<T extends { createdAt: Date; id: string; points?: number }>(a: T, b: T): number {
+  const pointsDelta = (b.points ?? 0) - (a.points ?? 0);
+  if (pointsDelta !== 0) return pointsDelta;
+  const delta = a.createdAt.getTime() - b.createdAt.getTime();
+  if (delta !== 0) return delta;
+  return a.id.localeCompare(b.id);
+}
+
+/**
+ * Build a comment forest ranked by points, then time.
+ * Missing parents become roots. Cycles are broken so every comment appears once.
+ */
+export function buildCommentTree<T extends { id: string; parentId: string | null; createdAt: Date }>(
+  comments: T[],
+): ThreadNode<T>[] {
+  const unique: T[] = [];
+  const seenIds = new Set<string>();
+  for (const comment of comments) {
+    if (seenIds.has(comment.id)) continue;
+    seenIds.add(comment.id);
+    unique.push(comment);
+  }
+
+  const nodes = new Map<string, ThreadNode<T>>();
+  for (const comment of unique) {
+    nodes.set(comment.id, { ...comment, replies: [] });
+  }
+
+  const childIds = new Set<string>();
+  for (const comment of unique) {
+    const parentId = comment.parentId;
+    if (!parentId || parentId === comment.id || !nodes.has(parentId)) continue;
+    nodes.get(parentId)?.replies.push(nodes.get(comment.id)!);
+    childIds.add(comment.id);
+  }
+
+  const visited = new Set<string>();
+
+  const sanitize = (node: ThreadNode<T>, stack: Set<string>) => {
+    visited.add(node.id);
+    stack.add(node.id);
+    const children = [...node.replies]
+      .sort(byPointsThenOldest)
+      .filter((child) => !stack.has(child.id) && !visited.has(child.id));
+    node.replies = children;
+    for (const child of children) sanitize(child, stack);
+    stack.delete(node.id);
+  };
+
+  const forest: ThreadNode<T>[] = [];
+  const roots = unique
+    .filter((comment) => !childIds.has(comment.id))
+    .map((comment) => nodes.get(comment.id)!)
+    .sort(byPointsThenOldest);
+
+  for (const root of roots) {
+    if (visited.has(root.id)) continue;
+    forest.push(root);
+    sanitize(root, new Set());
+  }
+
+  const stranded = [...nodes.values()].filter((node) => !visited.has(node.id)).sort(byPointsThenOldest);
+  for (const node of stranded) {
+    if (visited.has(node.id)) continue;
+    forest.push(node);
+    sanitize(node, new Set());
+  }
+
+  return forest;
+}
+
+export function maxThreadDepth<T>(nodes: ThreadNode<T>[]): number {
+  let max = 0;
+  const walk = (list: ThreadNode<T>[], depth: number) => {
+    for (const node of list) {
+      max = Math.max(max, depth);
+      walk(node.replies, depth + 1);
+    }
+  };
+  walk(nodes, 1);
+  return max;
+}
+
+export function countThreadNodes<T>(nodes: ThreadNode<T>[]): number {
+  return nodes.reduce((sum, node) => sum + 1 + countThreadNodes(node.replies), 0);
+}
