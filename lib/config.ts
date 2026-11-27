@@ -27,6 +27,10 @@ export const PASSWORD_RESET_RATE_LIMIT = 3;
 export const PASSWORD_RESET_RATE_WINDOW_MS = 10 * 60 * 1000;
 /** Reset links stop working after this long. */
 export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+export const EMAIL_CHANGE_RATE_LIMIT = 3;
+export const EMAIL_CHANGE_RATE_WINDOW_MS = 10 * 60 * 1000;
+/** Email-change links stop working after this long. */
+export const EMAIL_CHANGE_TTL_MS = 60 * 60 * 1000;
 
 export const POST_DUPLICATE_WINDOW_MS = 60 * 60 * 1000;
 export const COMMENT_DUPLICATE_WINDOW_MS = 10 * 60 * 1000;

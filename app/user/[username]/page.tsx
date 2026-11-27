@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { EmailChangeForm } from "@/components/email-change-form";
 import { EmptyState } from "@/components/empty-state";
 import { FollowButton } from "@/components/follow-button";
 import { PostRow } from "@/components/post-row";
@@ -49,7 +50,15 @@ export default async function UserPage({ params }: Params) {
         {profile.user.email ? (
           <>
             <dt className="text-hn-sub">email</dt>
-            <dd>{profile.user.email}</dd>
+            <dd data-testid="account-email">{profile.user.email}</dd>
+          </>
+        ) : null}
+        {viewer && viewer.id === profile.user.id ? (
+          <>
+            <dt className="text-hn-sub">change</dt>
+            <dd>
+              <EmailChangeForm />
+            </dd>
           </>
         ) : null}
       </dl>

@@ -13,6 +13,7 @@ const sqliteFiles: Record<string, string> = {
   sessionRevoke: "/tmp/hn-session-revoke.db",
   searchUnicode: "/tmp/hn-search-unicode.db",
   searchFold: "/tmp/hn-search-fold.db",
+  emailChange: "/tmp/hn-email-change.db",
   downvotes: "/tmp/hn-downvotes.db",
   depth: "/tmp/hn-comment-depth.db",
   searchWindow: "/tmp/hn-search-window.db",
