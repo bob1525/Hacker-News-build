@@ -21,6 +21,7 @@ model User {
   favorites    Favorite[]
   following    Follow[]      @relation("UserFollows")
   followers    Follow[]      @relation("UserFollowers")
+  collapses    CommentCollapse[]
 }
 
 model Post {
@@ -53,6 +54,7 @@ model Comment {
   editedAt  DateTime?
   deletedAt DateTime?
   votes     CommentVote[]
+  collapses CommentCollapse[]
 
   @@index([postId, createdAt])
   @@index([authorId])
@@ -90,6 +92,18 @@ model PostVote {
 
   @@id([userId, postId])
   @@index([postId])
+}
+
+model CommentCollapse {
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([userId])
+  @@index([commentId])
 }
 
 model CommentVote {

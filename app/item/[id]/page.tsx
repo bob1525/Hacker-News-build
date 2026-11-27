@@ -7,6 +7,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { PostRow } from "@/components/post-row";
 import { plural } from "@/lib/domain/format";
 import { getCurrentUser } from "@/lib/auth";
+import { listCollapsedCommentIds } from "@/lib/comment-collapse";
 import { prisma } from "@/lib/db";
 import { getPostDetail } from "@/lib/queries";
 
@@ -23,6 +24,7 @@ export default async function ItemPage({ params }: Params) {
   const user = await getCurrentUser();
   const detail = await getPostDetail(id, user?.id ?? null);
   if (!detail) notFound();
+  const collapsedIds = user ? await listCollapsedCommentIds(prisma, user.id, detail.post.id) : [];
 
   return (
     <article className="px-2 py-2">
@@ -47,7 +49,12 @@ export default async function ItemPage({ params }: Params) {
         {detail.comments.length === 0 ? (
           <EmptyState title="No comments yet." hint="Be the first to add one." />
         ) : (
-          <CommentThread comments={detail.comments} postId={detail.post.id} viewerId={user?.id ?? null} />
+          <CommentThread
+            comments={detail.comments}
+            postId={detail.post.id}
+            viewerId={user?.id ?? null}
+            initialCollapsedIds={collapsedIds}
+          />
         )}
       </section>
     </article>

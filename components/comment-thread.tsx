@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { setCommentCollapsed } from "@/lib/actions/comment-collapse";
 import { deleteComment } from "@/lib/actions/comments";
 import { COLLAPSED_COMMENTS_KEY, parseCollapsedIds, toggleCollapsedId } from "@/lib/domain/collapsed-comments";
 import { plural } from "@/lib/domain/format";
@@ -162,23 +163,30 @@ export function CommentThread({
   comments,
   postId,
   viewerId,
+  initialCollapsedIds = [],
 }: {
   comments: CommentDTO[];
   postId: string;
   viewerId: string | null;
+  initialCollapsedIds?: string[];
 }) {
-  const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
+  const [collapsedIds, setCollapsedIds] = useState<string[]>(() => (viewerId ? initialCollapsedIds : []));
 
   useEffect(() => {
+    if (viewerId) return;
     setCollapsedIds(parseCollapsedIds(sessionStorage.getItem(COLLAPSED_COMMENTS_KEY)));
-  }, []);
+  }, [viewerId]);
 
-  function onToggle(id: string) {
-    setCollapsedIds((current) => {
-      const next = toggleCollapsedId(current, id);
+  async function onToggle(id: string) {
+    const previous = collapsedIds;
+    const next = toggleCollapsedId(previous, id);
+    setCollapsedIds(next);
+    if (!viewerId) {
       sessionStorage.setItem(COLLAPSED_COMMENTS_KEY, JSON.stringify(next));
-      return next;
-    });
+      return;
+    }
+    const result = await setCommentCollapsed(id, next.includes(id));
+    if (!result.ok) setCollapsedIds(previous);
   }
 
   return (

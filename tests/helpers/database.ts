@@ -6,6 +6,7 @@ const sqliteFiles: Record<string, string> = {
   concurrency: "/tmp/hn-concurrency.db",
   ranking_sql: "/tmp/hn-ranking-sql.db",
   search: "/tmp/hn-search.db",
+  collapse: "/tmp/hn-collapse.db",
 };
 
 export function usesPostgres(env?: { DATABASE_URL?: string }): boolean {
