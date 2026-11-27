@@ -196,6 +196,14 @@ npx tsx scripts/scale-bench.ts
 - [LEFTOVER_HARDENING_V2.md](LEFTOVER_HARDENING_V2.md)
 - [NINTH_ROUND_AUDIT.md](NINTH_ROUND_AUDIT.md)
 
+第十轮在密码重置后作废旧会话，让 `ß` 和 `SS` 走同一套搜索折叠，加上限时的邮箱更换，并收掉深层评论到顶后的多余边距：
+
+- [SESSION_REVOKE.md](SESSION_REVOKE.md)
+- [SEARCH_FOLD_V2.md](SEARCH_FOLD_V2.md)
+- [ACCOUNT_EMAIL_CHANGE.md](ACCOUNT_EMAIL_CHANGE.md)
+- [LEFTOVER_HARDENING_V3.md](LEFTOVER_HARDENING_V3.md)
+- [TENTH_ROUND_AUDIT.md](TENTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
