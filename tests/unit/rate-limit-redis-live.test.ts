@@ -11,20 +11,21 @@ describe.skipIf(!live)("redis service rate limit", () => {
     await Promise.all(stores.splice(0).map((store) => store.clear().then(() => store.quit())));
   });
 
-  function open(name: string): RedisRateLimitStore {
+  function open(prefix: string): RedisRateLimitStore {
     const client = new Redis(process.env.REDIS_URL ?? "", {
       maxRetriesPerRequest: 1,
       connectTimeout: 2_000,
       lazyConnect: false,
     });
-    const store = new RedisRateLimitStore(client as unknown as RedisCommandClient, `hn:rate:live:${process.pid}:${name}:`);
+    const store = new RedisRateLimitStore(client as unknown as RedisCommandClient, prefix);
     stores.push(store);
     return store;
   }
 
   it("shares one EVAL limit across two connections to the server", async () => {
-    const first = open("a");
-    const second = open("b");
+    const prefix = `hn:rate:live:${process.pid}:`;
+    const first = open(prefix);
+    const second = open(prefix);
     const results = await Promise.all(
       Array.from({ length: 6 }, (_, index) => {
         const store = index % 2 === 0 ? first : second;

@@ -53,6 +53,16 @@ npx eslint scripts/next-dev-exit.cjs tests/unit/next-dev-exit.test.ts tests/unit
 
 输出里有 `AUTH_SECRET is too short`，进程退出码是 1。原有 `tests/unit/auth-secret.test.ts` 没有改断言。本阶段新增 3 个测试：父进程映射、真实 `next dev` 退出码、双连接打到 Redis 服务。第三个在本机跳过，因为没有 `REDIS_INTEGRATION=1`。
 
+第一次 `redis` job 失败。运行 [45978671119](https://github.com/bob1525/Hacker-News-build/actions/runs/45978671119)：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `redis` [140436732120](https://github.com/bob1525/Hacker-News-build/actions/runs/45978671119/job/140436732120) | failure | 2026-11-27 10:02:16Z 到 10:03:07Z |
+| `postgres` [140436733070](https://github.com/bob1525/Hacker-News-build/actions/runs/45978671119/job/140436733070) | success | 2026-11-27 10:02:16Z 到 10:03:20Z |
+| `test` [140436733162](https://github.com/bob1525/Hacker-News-build/actions/runs/45978671119/job/140436733162) | success | 2026-11-27 10:02:16Z 到 10:04:23Z |
+
+`redis:7` 已经启动。失败断言是 6 次调用里放行了 4 次，限额是 2。两个连接用了不同的键前缀，所以各自有一份限额。测试已改为同一个前缀。同一次运行里 `postgres` 对空 schema 执行迁移并漂移检查通过，`test` 为 148 passed、1 skipped、端到端 `23 passed (1.0m)`。修正后的 Redis 结果记在随后的运行里。
+
 ## Redis 与 mock Lua 的边界
 
 `ioredis-mock` 用 Fengari 执行同一段 `RATE_LIMIT_LUA`。Fengari 没有 `cjson`，所以脚本把时间戳存成逗号分隔的字符串。mock 是单个进程里的假服务器，不能证明两台机器同时写同一个键。`redis` job 用两个 `ioredis` 连接连到 `redis:7`，走同一段 `EVAL`。默认限流仍是内存。本机没有 Redis 服务，所以这个测试的通过证据以该 job 为准。
@@ -61,5 +71,5 @@ npx eslint scripts/next-dev-exit.cjs tests/unit/next-dev-exit.test.ts tests/unit
 
 - 直接执行 `npx next dev` 不会加载这个钩子。Next.js 父进程仍会以 0 结束。要用 `npm run dev`。
 - `next start` 本来就会在密钥不合格时以 1 结束。这次没有改生产服务器的退出路径。
-- 真实 Redis 的结果要等 `redis` job。本机只证明了跳过，没有连上服务器。
+- 第一次真实 Redis 运行因为测试使用了两个键前缀而失败，不是 Lua 把限额放宽。修正后的 job 结果另记。
 - 生产改用 PostgreSQL 时必须改 datasource provider。只改 `DATABASE_URL` 而留下 `provider = "sqlite"` 不会连上 PostgreSQL。
