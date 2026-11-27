@@ -204,6 +204,14 @@ npx tsx scripts/scale-bench.ts
 - [LEFTOVER_HARDENING_V3.md](LEFTOVER_HARDENING_V3.md)
 - [TENTH_ROUND_AUDIT.md](TENTH_ROUND_AUDIT.md)
 
+第十一轮在更换邮箱时通知旧地址，确认成功后让其他设备退出，补上合字和微米符号等搜索折叠，并让生产环境的 `MAIL_LOG_PATH` 不写令牌：
+
+- [EMAIL_CHANGE_NOTIFY.md](EMAIL_CHANGE_NOTIFY.md)
+- [SESSION_MANAGEMENT.md](SESSION_MANAGEMENT.md)
+- [SEARCH_CASEFOLD.md](SEARCH_CASEFOLD.md)
+- [LEFTOVER_HARDENING_V4.md](LEFTOVER_HARDENING_V4.md)
+- [ELEVENTH_ROUND_AUDIT.md](ELEVENTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
