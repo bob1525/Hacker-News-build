@@ -260,6 +260,10 @@ npx tsx scripts/scale-bench.ts
 
 ![退出其他设备](docs/screenshots/sign-out-others.png)
 
+![当前登录的设备](docs/screenshots/devices.png)
+
+![登录后仍保持折叠](docs/screenshots/collapse-sync.png)
+
 ![第 11 层评论](docs/screenshots/comment-depth.png)
 
 ## 目录

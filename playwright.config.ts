@@ -19,8 +19,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command:
-      ": > /tmp/hn-e2e-server.log && npx prisma migrate deploy && npx tsx prisma/seed.ts && npx next build && npx next start --hostname 127.0.0.1 --port 3100 >> /tmp/hn-e2e-server.log 2>&1",
+    command: "bash scripts/e2e-server.sh",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: false,
     timeout: 300_000,
@@ -28,6 +27,10 @@ export default defineConfig({
       ...process.env,
       DATABASE_URL: databaseUrl,
       AUTH_SECRET: authSecret,
+      MAILER: "smtp",
+      SMTP_HOST: "127.0.0.1",
+      SMTP_PORT: "2525",
+      SMTP_FROM: "news@example.com",
       MAIL_LOG_PATH: "/tmp/hn-e2e-mail.log",
       NODE_ENV: "production",
     },

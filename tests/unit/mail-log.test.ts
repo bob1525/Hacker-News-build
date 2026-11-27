@@ -41,4 +41,77 @@ describe("console mail log", () => {
     expect(recordedMail().at(-1)?.text).toContain(secret);
     rmSync(dir, { recursive: true, force: true });
   });
+
+  it("prints only the recipient and subject on stdout in production", async () => {
+    const secret = "stdout-production-token-secret";
+    const lines: string[] = [];
+    const original = console.info;
+    console.info = (message?: unknown) => {
+      lines.push(String(message));
+    };
+    try {
+      const mailer = createMailer({ MAILER: "console", NODE_ENV: "production" });
+      await mailer.send({
+        to: "a@example.com",
+        subject: "Reset your password",
+        text: `Open http://localhost:3000/reset-password?token=${secret}\n`,
+      });
+    } finally {
+      console.info = original;
+    }
+    const logged = lines.join("\n");
+    expect(logged).toContain("to=a@example.com");
+    expect(logged).toContain("subject=Reset your password");
+    expect(logged).not.toContain(secret);
+    expect(logged).not.toContain("token=");
+    expect(logged).not.toContain("/reset-password");
+  });
+
+  it("prints the full message on stdout outside production", async () => {
+    const secret = "stdout-dev-token-secret";
+    const lines: string[] = [];
+    const original = console.info;
+    console.info = (message?: unknown) => {
+      lines.push(String(message));
+    };
+    try {
+      const mailer = createMailer({ MAILER: "console", NODE_ENV: "development" });
+      await mailer.send({
+        to: "a@example.com",
+        subject: "Reset your password",
+        text: `token=${secret}`,
+      });
+    } finally {
+      console.info = original;
+    }
+    expect(lines.join("\n")).toContain(`token=${secret}`);
+  });
+
+  it("does not put the message body on stdout when production SMTP accepts it", async () => {
+    const secret = "smtp-production-token-secret";
+    const lines: string[] = [];
+    const original = console.info;
+    console.info = (message?: unknown) => {
+      lines.push(String(message));
+    };
+    try {
+      const mailer = createMailer(
+        {
+          MAILER: "smtp",
+          NODE_ENV: "production",
+          SMTP_HOST: "smtp.example.com",
+          SMTP_FROM: "news@example.com",
+        },
+        { transport: { async send() {} } },
+      );
+      await mailer.send({ to: "a@example.com", subject: "Confirm your new email", text: `token=${secret}` });
+    } finally {
+      console.info = original;
+    }
+    const logged = lines.join("\n");
+    expect(logged).toContain("to=a@example.com");
+    expect(logged).toContain("subject=Confirm your new email");
+    expect(logged).not.toContain(secret);
+    expect(logged).not.toContain("token=");
+  });
 });

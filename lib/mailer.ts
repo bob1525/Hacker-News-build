@@ -109,22 +109,32 @@ export function mailLogEntry(mail: OutboundMail, env: MailerEnv): string | null 
   return `${mail.to}\n${mail.subject}\n${mail.text}\n---\n`;
 }
 
+/** Production stdout keeps the recipient and subject. Other environments keep the body. */
+export function mailStdoutLine(mail: OutboundMail, env: MailerEnv): string {
+  const head = `[mail] to=${mail.to} subject=${mail.subject}`;
+  if (env.NODE_ENV === "production") return head;
+  return `${head}\n${mail.text}`;
+}
+
+function emitMailRecord(mail: OutboundMail, env: MailerEnv): void {
+  const logPath = env.MAIL_LOG_PATH?.trim();
+  const entry = mailLogEntry(mail, env);
+  if (logPath && entry) appendFileSync(logPath, entry);
+  if (env.NODE_ENV !== "test") console.info(mailStdoutLine(mail, env));
+}
+
 function consoleMailer(env: MailerEnv): Mailer {
   return {
     async send(mail) {
       recorded.push(mail);
-      const logPath = env.MAIL_LOG_PATH?.trim();
-      const entry = mailLogEntry(mail, env);
-      if (logPath && entry) appendFileSync(logPath, entry);
-      if (env.NODE_ENV !== "test") {
-        console.info(`[mail] to=${mail.to} subject=${mail.subject}\n${mail.text}`);
-      }
+      emitMailRecord(mail, env);
     },
   };
 }
 
 /**
  * `MAILER=console` (the default) records the message for tests and prints it outside tests.
+ * In production that print, and `MAIL_LOG_PATH`, keep only the recipient and subject.
  * `MAILER=smtp` uses SMTP_HOST, SMTP_PORT (587), SMTP_SECURE, SMTP_USER, SMTP_PASS, and SMTP_FROM.
  * Tests pass `transport` so CI never opens a network connection.
  */
@@ -142,6 +152,7 @@ export function createMailer(env: MailerEnv = process.env, options: { transport?
     async send(mail) {
       try {
         await transport.send({ from: config.from, to: mail.to, subject: mail.subject, text: mail.text });
+        emitMailRecord(mail, env);
       } catch (error) {
         if (error instanceof MailDeliveryError) throw error;
         throw new MailDeliveryError();

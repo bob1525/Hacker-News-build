@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { clearMailLog, latestServerBlock, latestToken, mailLogPath, serverLogMark } from "./mail-log";
+import { clearMailLog, latestMailboxBlock, latestServerBlock, latestToken, mailLogPath, mailboxMark, serverLogMark } from "./mail-log";
 
 test("signs out other devices and keeps this browser", async ({ browser }) => {
   const username = `o${Date.now().toString(36)}`;
@@ -24,7 +24,7 @@ test("signs out other devices and keeps this browser", async ({ browser }) => {
   await expect(pageB.getByTestId("current-user")).toHaveText(username);
 
   await pageA.goto(`/user/${username}`);
-  await pageA.getByRole("button", { name: "Sign out other devices" }).click();
+  await pageA.getByRole("button", { name: "Sign out other devices", exact: true }).click();
   await expect(pageA.getByText("Other devices were signed out. This browser stays signed in.")).toBeVisible();
   await expect(pageA.getByTestId("current-user")).toHaveText(username);
   await pageA.goto("/");
@@ -53,6 +53,7 @@ test("notifies the old address without a token and keeps the production mail log
 
   clearMailLog();
   const changeMark = serverLogMark();
+  const inboxMark = mailboxMark();
   await page.goto(`/user/${username}`);
   await page.getByLabel("New email").fill(nextEmail);
   await page.getByRole("button", { name: "send confirmation" }).click();
@@ -63,9 +64,15 @@ test("notifies the old address without a token and keeps the production mail log
   expect(requested).toContain(`to=${email}`);
   expect(requested).not.toContain("token=");
   expect(requested).not.toContain("/change-email");
+  const requestedMail = await latestMailboxBlock("Email change requested", inboxMark);
+  expect(requestedMail).toContain(email);
+  expect(requestedMail).not.toContain("token=");
+  expect(requestedMail).not.toContain("/change-email");
   const confirmation = await latestServerBlock("Confirm your new email", changeMark);
   expect(confirmation).toContain(`to=${nextEmail}`);
-  expect(confirmation).toContain("token=");
+  expect(confirmation).not.toContain("token=");
+  const confirmationMail = await latestMailboxBlock("Confirm your new email", inboxMark);
+  expect(confirmationMail).toContain("token=");
 
   const logged = readFileSync(mailLogPath, "utf8");
   expect(logged).toContain(email);
@@ -74,7 +81,7 @@ test("notifies the old address without a token and keeps the production mail log
   expect(logged).not.toContain("token=");
   expect(logged).not.toContain("/change-email");
 
-  const token = await latestToken("Confirm your new email", changeMark);
+  const token = await latestToken("Confirm your new email", inboxMark);
   await page.goto(`/change-email?token=${encodeURIComponent(token)}`);
   await page.getByRole("button", { name: "confirm new email" }).click();
   await expect(page.getByTestId("account-email")).toHaveText(nextEmail);
@@ -84,5 +91,9 @@ test("notifies the old address without a token and keeps the production mail log
   expect(changed).toContain(`to=${email}`);
   expect(changed).not.toContain("token=");
   expect(changed).not.toContain("/change-email");
+  const changedMail = await latestMailboxBlock("Your email was changed", inboxMark);
+  expect(changedMail).toContain(email);
+  expect(changedMail).not.toContain("token=");
+  expect(changedMail).not.toContain("/change-email");
   expect(readFileSync(mailLogPath, "utf8")).not.toContain("token=");
 });

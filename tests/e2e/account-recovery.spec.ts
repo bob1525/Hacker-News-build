@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clearMailLog, latestToken, serverLogMark } from "./mail-log";
+import { clearMailLog, latestToken, mailboxMark } from "./mail-log";
 
 test("shows an invalid password-reset or email-change link", async ({ page }) => {
   await page.goto("/reset-password");
@@ -25,7 +25,7 @@ test("resets a password from the emailed link and rejects the old one", async ({
   await expect(page.getByRole("link", { name: "login" })).toBeVisible();
 
   clearMailLog();
-  const resetMark = serverLogMark();
+  const resetMark = mailboxMark();
   await page.goto("/forgot-password");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "send reset link" }).click();
@@ -64,7 +64,7 @@ test("keeps the old email until the change link is confirmed", async ({ page }) 
   await expect(page.getByTestId("current-user")).toHaveText(username);
 
   clearMailLog();
-  const changeMark = serverLogMark();
+  const changeMark = mailboxMark();
   await page.goto(`/user/${username}`);
   await expect(page.getByTestId("account-email")).toHaveText(email);
   await page.getByLabel("New email").fill(nextEmail);
