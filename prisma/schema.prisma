@@ -56,6 +56,8 @@ model Post {
   title     String
   url       String?
   text      String     @default("")
+  titleFold String     @default("")
+  textFold  String     @default("")
   authorId  String
   author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime   @default(now())

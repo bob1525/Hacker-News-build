@@ -1,11 +1,11 @@
 import { paginate, type Page } from "@/lib/domain/pagination";
 import { compareByHot, type Rankable } from "@/lib/domain/ranking";
+import { foldSearchText } from "@/lib/domain/search-fold";
 
 const WORD_PATTERN = /^[\p{L}\p{N}_]+$/u;
 
 export function tokenize(query: string): string[] {
-  return query
-    .toLowerCase()
+  return foldSearchText(query)
     .split(/[^\p{L}\p{N}_]+/u)
     .map((word) => word.trim())
     .filter((word) => word.length >= 2 && WORD_PATTERN.test(word))
@@ -16,8 +16,8 @@ export function searchRelevance(post: { title: string; text: string }, query: st
   const words = tokenize(query);
   if (words.length === 0) return 0;
 
-  const title = post.title.toLowerCase();
-  const text = post.text.toLowerCase();
+  const title = foldSearchText(post.title);
+  const text = foldSearchText(post.text);
   const phrase = words.join(" ");
   let score = 0;
 

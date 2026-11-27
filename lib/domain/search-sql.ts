@@ -3,11 +3,11 @@ import type { SqlDialect } from "@/lib/sql-dialect";
 import type { FeedFilter } from "@/lib/types";
 
 function titleExpr(dialect: SqlDialect, prefix: string): string {
-  return dialect === "postgresql" ? `lower(${prefix}"title")` : `lower(${prefix}title)`;
+  return dialect === "postgresql" ? `${prefix}"titleFold"` : `${prefix}titleFold`;
 }
 
 function textExpr(dialect: SqlDialect, prefix: string): string {
-  return dialect === "postgresql" ? `lower(COALESCE(${prefix}"text", ''))` : `lower(ifnull(${prefix}text, ''))`;
+  return dialect === "postgresql" ? `COALESCE(${prefix}"textFold", '')` : `ifnull(${prefix}textFold, '')`;
 }
 
 function contains(expr: string, placeholder: string, dialect: SqlDialect): string {

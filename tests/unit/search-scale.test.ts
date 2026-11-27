@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { pageSearchResults } from "@/lib/domain/search";
+import { pageSearchResults, tokenize } from "@/lib/domain/search";
+import { withSearchFold } from "@/lib/domain/search-fold";
 import { searchPostSql } from "@/lib/sql-dialect";
 import { prepareTestDatabase } from "@/tests/helpers/database";
 
@@ -20,7 +21,7 @@ describe("search candidate prefilter", () => {
   });
 
   async function idsFor(query: string): Promise<string[]> {
-    const words = query.split(" ");
+    const words = tokenize(query);
     const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(searchPostSql(words.length), ...words.flatMap((word) => [word, word]));
     return rows.map((row) => row.id);
   }
@@ -30,13 +31,13 @@ describe("search candidate prefilter", () => {
       data: { username: "author", email: "author@example.com", passwordHash: "x" },
     });
     const both = await db.post.create({
-      data: { title: "SQLite WAL notes", text: "", authorId: author.id },
+      data: withSearchFold({ title: "SQLite WAL notes", text: "", authorId: author.id }),
     });
     const one = await db.post.create({
-      data: { title: "Hello", text: "sqlite only", authorId: author.id },
+      data: withSearchFold({ title: "Hello", text: "sqlite only", authorId: author.id }),
     });
     await db.post.create({
-      data: { title: "Other", text: "nothing here", authorId: author.id },
+      data: withSearchFold({ title: "Other", text: "nothing here", authorId: author.id }),
     });
 
     const bothWords = await idsFor("sqlite wal");

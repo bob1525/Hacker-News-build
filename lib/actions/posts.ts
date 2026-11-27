@@ -7,6 +7,7 @@ import { emailVerificationBlock } from "@/lib/domain/email-verification";
 import { hasRecentDuplicate } from "@/lib/domain/duplicate";
 import { guardRateLimit } from "@/lib/limits";
 import { getCurrentUser } from "@/lib/auth";
+import { withSearchFold } from "@/lib/domain/search-fold";
 import { prisma } from "@/lib/db";
 import type { FormState } from "@/lib/types";
 import { fieldErrors, formString, postSchema } from "@/lib/validators";
@@ -54,12 +55,12 @@ export async function createPost(_prev: FormState, formData: FormData): Promise<
   let postId = "";
   try {
     const post = await prisma.post.create({
-      data: {
+      data: withSearchFold({
         title: parsed.data.title,
         url: parsed.data.url ? parsed.data.url : null,
         text: parsed.data.text,
         authorId: user.id,
-      },
+      }),
     });
     postId = post.id;
     refreshFeeds();

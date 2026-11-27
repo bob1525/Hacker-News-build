@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { PrismaClient } from "@prisma/client";
+import { withSearchFold } from "../lib/domain/search-fold";
 
 const databasePath = "/tmp/hn-scale.db";
 const databaseUrl = `file:${databasePath}`;
@@ -39,16 +40,18 @@ async function main() {
   );
 
   const posts = await db.post.createManyAndReturn({
-    data: Array.from({ length: POSTS }, (_, index) => ({
-      title:
-        index % 15 === 0
-          ? `Scale finder note ${index} about scalefinder indexes`
-          : `Scale story ${index} on widgets and queues`,
-      text: index % 15 === 0 ? "scalefinder appears in the body too." : "A short scale-test story.",
-      url: index % 4 === 0 ? null : `https://example.com/scale/${index}`,
-      authorId: users[index % USERS]!.id,
-      createdAt: new Date(Date.now() - index * 60_000),
-    })),
+    data: Array.from({ length: POSTS }, (_, index) =>
+      withSearchFold({
+        title:
+          index % 15 === 0
+            ? `Scale finder note ${index} about scalefinder indexes`
+            : `Scale story ${index} on widgets and queues`,
+        text: index % 15 === 0 ? "scalefinder appears in the body too." : "A short scale-test story.",
+        url: index % 4 === 0 ? null : `https://example.com/scale/${index}`,
+        authorId: users[index % USERS]!.id,
+        createdAt: new Date(Date.now() - index * 60_000),
+      }),
+    ),
   });
 
   await db.comment.createMany({
@@ -77,7 +80,7 @@ async function main() {
   );
   await timed("search", () =>
     db.$queryRawUnsafe<Array<{ id: string }>>(
-      "SELECT id FROM Post WHERE instr(lower(title), ?) > 0 OR instr(lower(ifnull(text, '')), ?) > 0",
+      "SELECT id FROM Post WHERE instr(titleFold, ?) > 0 OR instr(ifnull(textFold, ''), ?) > 0",
       "scalefinder",
       "scalefinder",
     ),

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { DEMO_PASSWORD } from "../lib/config";
+import { withSearchFold } from "../lib/domain/search-fold";
 import { pickVoters } from "../lib/domain/voters";
 import { hashPassword } from "../lib/password";
 import {
@@ -92,13 +93,13 @@ async function main() {
     const authorId = ids.get(post.author);
     if (!authorId) throw new Error(`Missing user ${post.author}`);
     const created = await prisma.post.create({
-      data: {
+      data: withSearchFold({
         title: post.title,
         url: post.url,
         text: post.text,
         authorId,
         createdAt: new Date(now - post.hoursAgo * 3_600_000),
-      },
+      }),
     });
     const voters = pickVoters(usernames, post.author, post.upvotes, index + 3);
     if (voters.length > 0) {

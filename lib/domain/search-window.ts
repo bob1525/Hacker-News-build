@@ -1,6 +1,7 @@
 import type { Page } from "@/lib/domain/pagination";
 import { compareByHot } from "@/lib/domain/ranking";
 import { searchRelevance, sortSearchResults, tokenize } from "@/lib/domain/search";
+import { foldSearchText } from "@/lib/domain/search-fold";
 
 export type SearchFeatures = {
   exact: boolean;
@@ -23,8 +24,8 @@ export function searchFeatures(post: { title: string; text: string }, query: str
   const words = tokenize(query);
   if (words.length === 0) return null;
   const phrase = words.join(" ");
-  const title = post.title.toLowerCase();
-  const text = post.text.toLowerCase();
+  const title = foldSearchText(post.title);
+  const text = foldSearchText(post.text);
   if (words.some((word) => !title.includes(word) && !text.includes(word))) return null;
   return {
     exact: title === phrase,

@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pageSearchResults, searchRelevance } from "@/lib/domain/search";
 import { searchGroupStatement } from "@/lib/domain/search-sql";
+import { withSearchFold } from "@/lib/domain/search-fold";
 import { relevanceFromFeatures, searchFeatures, searchWindow, type SearchHit } from "@/lib/domain/search-window";
 import { loadSearchWindow, readSearchGroup } from "@/lib/search-window-db";
 import { prepareTestDatabase } from "@/tests/helpers/database";
@@ -86,12 +87,12 @@ describe("search window sql", () => {
     const created: SearchHit[] = [];
     for (let index = 0; index < 5; index += 1) {
       const post = await db.post.create({
-        data: {
+        data: withSearchFold({
           title: "note",
           text: "needle sits in the body",
           authorId: author.id,
           createdAt: new Date(now.getTime() - (index + 1) * hour),
-        },
+        }),
       });
       if (index === 0) {
         await db.postVote.create({ data: { userId: author.id, postId: post.id, value: 3 } });
@@ -99,11 +100,11 @@ describe("search window sql", () => {
       created.push({ id: post.id, title: post.title, text: post.text, points: index === 0 ? 3 : 0, createdAt: post.createdAt });
     }
     const hot = await db.post.create({
-      data: { title: "needle", text: "", authorId: author.id, createdAt: new Date(now.getTime() - hour) },
+      data: withSearchFold({ title: "needle", text: "", authorId: author.id, createdAt: new Date(now.getTime() - hour) }),
     });
     await db.postVote.create({ data: { userId: author.id, postId: hot.id, value: 2 } });
     const newer = await db.post.create({
-      data: { title: "needle", text: "needle", authorId: author.id, createdAt: now },
+      data: withSearchFold({ title: "needle", text: "needle", authorId: author.id, createdAt: now }),
     });
     created.push(
       { id: hot.id, title: "needle", text: "", points: 2, createdAt: hot.createdAt },
@@ -118,10 +119,10 @@ describe("search window sql", () => {
     expect(loaded.hasMore).toBe(true);
 
     const phrase = await db.post.create({
-      data: { title: "needle wal", text: "notes", authorId: author.id, createdAt: now },
+      data: withSearchFold({ title: "needle wal", text: "notes", authorId: author.id, createdAt: now }),
     });
     await db.post.create({
-      data: { title: "note", text: "wal then needle", authorId: author.id, createdAt: now },
+      data: withSearchFold({ title: "note", text: "wal then needle", authorId: author.id, createdAt: now }),
     });
     const both = await loadSearchWindow(db, { query: "needle wal", page: 1, pageSize: 1, now });
     expect(both.total).toBe(2);
