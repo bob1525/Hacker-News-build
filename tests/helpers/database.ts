@@ -5,6 +5,7 @@ import { configuredDatabaseUrl } from "@/lib/sql-dialect";
 const sqliteFiles: Record<string, string> = {
   concurrency: "/tmp/hn-concurrency.db",
   ranking_sql: "/tmp/hn-ranking-sql.db",
+  search: "/tmp/hn-search.db",
 };
 
 export function usesPostgres(env?: { DATABASE_URL?: string }): boolean {

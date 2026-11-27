@@ -1,3 +1,4 @@
+import { paginate, type Page } from "@/lib/domain/pagination";
 import { compareByHot, type Rankable } from "@/lib/domain/ranking";
 
 const WORD_PATTERN = /^[\p{L}\p{N}_]+$/u;
@@ -40,6 +41,23 @@ export function sortSearchResults<T extends Rankable & { title: string; text: st
   return [...items].sort((a, b) => {
     const relevance = searchRelevance(b, query) - searchRelevance(a, query);
     if (relevance !== 0) return relevance;
-    return compareByHot(a, b, now);
+    const hot = compareByHot(a, b, now);
+    if (hot !== 0) return hot;
+    return searchId(b).localeCompare(searchId(a));
   });
+}
+
+/** Score the SQL candidate set with `searchRelevance`, then slice one stable page. */
+export function pageSearchResults<T extends Rankable & { title: string; text: string }>(
+  items: readonly T[],
+  query: string,
+  page: number,
+  pageSize: number,
+  now = new Date(),
+): Page<T> {
+  return paginate(sortSearchResults([...items], query, now), page, pageSize);
+}
+
+function searchId(item: Rankable & { title: string; text: string }): string {
+  return "id" in item && typeof item.id === "string" ? item.id : "";
 }

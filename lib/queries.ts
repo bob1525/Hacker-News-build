@@ -7,7 +7,7 @@ import { paginate } from "@/lib/domain/pagination";
 import { pageHotPostIds, pageNewestPostIds } from "@/lib/domain/ranking-sql";
 import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
 import { rankingBackend } from "@/lib/ranking-backend";
-import { sortSearchResults, tokenize } from "@/lib/domain/search";
+import { pageSearchResults, tokenize } from "@/lib/domain/search";
 import { searchPostSql } from "@/lib/sql-dialect";
 import { getKarma } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -97,15 +97,56 @@ export async function getFeed(options: {
     return { items: [], page, hasMore: false, total: 0 };
   }
 
-  let ids: string[] | null = null;
+  const now = new Date();
   if (query) {
     if (tokenize(query).length === 0) return { items: [], page, hasMore: false, total: 0 };
-    ids = await searchPostIds(query);
+    const ids = await searchPostIds(query);
     if (ids.length === 0) return { items: [], page, hasMore: false, total: 0 };
+    const candidates = await prisma.post.findMany({
+      where: feedWhere(filter, ids, options.authorIds),
+      select: {
+        id: true,
+        title: true,
+        text: true,
+        createdAt: true,
+        _count: { select: { votes: true } },
+      },
+    });
+    const ranked = pageSearchResults(
+      candidates.map((row) => ({
+        id: row.id,
+        title: row.title,
+        text: row.text,
+        points: row._count.votes,
+        createdAt: row.createdAt,
+      })),
+      query,
+      page,
+      PAGE_SIZE,
+      now,
+    );
+    if (ranked.items.length === 0) {
+      return { items: [], page: ranked.page, hasMore: ranked.hasMore, total: ranked.total };
+    }
+    const pageRows = await prisma.post.findMany({
+      where: { id: { in: ranked.items.map((item) => item.id) } },
+      include: postInclude(viewerId),
+    });
+    const byId = new Map(pageRows.map((row) => [row.id, row]));
+    const items = ranked.items.map((item) => {
+      const row = byId.get(item.id);
+      if (!row) throw new Error(`Search result ${item.id} was not loaded.`);
+      return toCard(toRecord(row));
+    });
+    return {
+      items,
+      page: ranked.page,
+      hasMore: ranked.hasMore,
+      total: ranked.total,
+    };
   }
 
-  const now = new Date();
-  if (!query && rankingBackend() === "sql") {
+  if (rankingBackend() === "sql") {
     const ranked =
       options.sort === "newest"
         ? await pageNewestPostIds(prisma, {
@@ -143,16 +184,12 @@ export async function getFeed(options: {
   }
 
   const rows = await prisma.post.findMany({
-    where: feedWhere(filter, ids, options.authorIds),
+    where: feedWhere(filter, null, options.authorIds),
     include: postInclude(viewerId),
   });
 
   const records = rows.map(toRecord);
-  const sorted = query
-    ? sortSearchResults(records, query, now)
-    : options.sort === "newest"
-      ? sortByNewest(records)
-      : sortByHot(records, now);
+  const sorted = options.sort === "newest" ? sortByNewest(records) : sortByHot(records, now);
 
   const paged = paginate(sorted, page, PAGE_SIZE);
   return {
