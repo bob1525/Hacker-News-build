@@ -30,7 +30,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 - 可以给别人的帖子和评论 upvote 或 downvote。页面上的分数按票数相加，可以是负数。热度排序把低于 0 的分数按 0 算。Karma 按帖子和评论分开累计，每一侧低于 0 时按 0 算。downvote 至少需要 1 点 karma（`DOWNVOTE_MIN_KARMA`）。
 - 首页按热度排序，New 页按时间排序，每页 30 条，底部有 More。
 - 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度和 Newest 下推到 SQL，见 [RANKING_DB.md](RANKING_DB.md) 和 [RANKING_EXTEND.md](RANKING_EXTEND.md)。
-- 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。折叠只在 `foldSearchText` 一处，包括 `ß`/`ς`、合字 ﬁ/ﬂ/ﬀ 和微米符号 µ。SQL 先筛出候选，再用同一套 `searchRelevance` 打分，只装载当前页，见 [SEARCH_SCALE.md](SEARCH_SCALE.md)。
+- 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。折叠只在 `foldSearchText` 一处，包括 `ß`/`ς`、合字 ﬁ/ﬂ/ﬀ、微米符号 µ，以及 `ΐ`/`ΰ` 等剩余的常见全折叠。折叠后不足 2 个字符的词会被丢掉，所以单独的 µ 搜不到。`npm run search:backfill` 可以重复把旧折叠写成当前结果。SQL 先筛出候选，再用同一套 `searchRelevance` 打分，只装载当前页，见 [SEARCH_SCALE.md](SEARCH_SCALE.md)。
 - 空状态、加载骨架和表单错误提示。
 
 ### 评论

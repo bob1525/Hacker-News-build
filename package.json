@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "prisma migrate deploy && tsx prisma/seed.ts",
+    "search:backfill": "tsx scripts/backfill-search-folds.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

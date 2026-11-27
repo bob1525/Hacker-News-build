@@ -2,13 +2,20 @@ import { paginate, type Page } from "@/lib/domain/pagination";
 import { compareByHot, type Rankable } from "@/lib/domain/ranking";
 import { foldSearchText } from "@/lib/domain/search-fold";
 
-const WORD_PATTERN = /^[\p{L}\p{N}_]+$/u;
+const WORD_PATTERN = /^[\p{L}\p{N}\p{M}_]+$/u;
+
+/**
+ * After `foldSearchText`, a token is a run of letters, numbers, underscores, and
+ * combining marks. Runs shorter than this are dropped. A lone µ folds to μ
+ * (one character) and scores nothing. ΐ expands to three code points and is kept.
+ */
+export const SEARCH_TOKEN_MIN_LENGTH = 2;
 
 export function tokenize(query: string): string[] {
   return foldSearchText(query)
-    .split(/[^\p{L}\p{N}_]+/u)
+    .split(/[^\p{L}\p{N}\p{M}_]+/u)
     .map((word) => word.trim())
-    .filter((word) => word.length >= 2 && WORD_PATTERN.test(word))
+    .filter((word) => word.length >= SEARCH_TOKEN_MIN_LENGTH && WORD_PATTERN.test(word) && /[\p{L}\p{N}_]/u.test(word))
     .slice(0, 8);
 }
 
