@@ -12,7 +12,7 @@
 | 2 搜索折叠 | [SEARCH_FOLD_V2.md](SEARCH_FOLD_V2.md) | `791c1c163518300b4cf6a68aa19e42ac1f5f47ae` | 3 个单元 |
 | 3 更换邮箱 | [ACCOUNT_EMAIL_CHANGE.md](ACCOUNT_EMAIL_CHANGE.md) | `06b4de7f350c17eeb3999102ac4d0ceb32c4ddf0` | 5 个单元 |
 | 4 遗留限制 | [LEFTOVER_HARDENING_V3.md](LEFTOVER_HARDENING_V3.md) | `6795af983c670373c0f69c58d39bba21a38afe05` | 2 个单元、3 个端到端 |
-| 5 本审计 | [TENTH_ROUND_AUDIT.md](TENTH_ROUND_AUDIT.md) | 本文件这一笔提交 | 0 |
+| 5 本审计 | [TENTH_ROUND_AUDIT.md](TENTH_ROUND_AUDIT.md) | `4b058424fc932cfbf1ae216988e200ffa5f3143b` | 0 |
 
 阶段 1：密码重置成功时把 `sessionVersion` 加 1。JWT 带 `sv`。`getCurrentUser` 只接受和库里版本相同的令牌。没有 `sv` 的旧令牌按 0 处理。新登录用当前版本签名。SQLite 迁移 `20261127160000_session_version`，PostgreSQL 追加 `0007_session_version.sql`。
 
@@ -22,7 +22,7 @@
 
 阶段 4：第 11 到 16 层不再叠加左边框和内边距。橙色层数标记和 16 层上限还在，缩进仍停在 120 像素。截图补了反对票、验证、重置密码、更换邮箱和深层评论。端到端走过重置链接和换邮箱确认。`MAIL_LOG_PATH` 默认不设置。
 
-阶段 5：本文件，加上 README 里第十轮五份文档的索引。没有新增测试。
+阶段 5：本文件，加上 README 里第十轮五份文档的索引。没有新增测试。审计正文在 `4b058424fc932cfbf1ae216988e200ffa5f3143b`。这一笔只补上该提交的 CI，没有改测试。
 
 ## 怎么验证
 
@@ -56,6 +56,14 @@ pull_request 运行 [46006486059](https://github.com/bob1525/Hacker-News-build/a
 | `redis` [140530822598](https://github.com/bob1525/Hacker-News-build/actions/runs/46006486059/job/140530822598) | success |
 
 阶段 1 自己的 push [46005070702](https://github.com/bob1525/Hacker-News-build/actions/runs/46005070702) 和 pull_request [46005079996](https://github.com/bob1525/Hacker-News-build/actions/runs/46005079996) 被下一笔 push 取消。含那次代码的阶段 2 运行是绿的：push [46005237677](https://github.com/bob1525/Hacker-News-build/actions/runs/46005237677) 与 pull_request [46005248015](https://github.com/bob1525/Hacker-News-build/actions/runs/46005248015) 的 `test`、`postgres`、`redis` 都是 success。阶段 3 的 push [46005654593](https://github.com/bob1525/Hacker-News-build/actions/runs/46005654593) 与 pull_request [46005663163](https://github.com/bob1525/Hacker-News-build/actions/runs/46005663163) 的三个 job 也都是 success。
+
+审计提交 `4b058424fc932cfbf1ae216988e200ffa5f3143b` 只改了 README 索引和本文件。它的 push 运行 [46043411774](https://github.com/bob1525/Hacker-News-build/actions/runs/46043411774) 和 pull_request 运行 [46043419459](https://github.com/bob1525/Hacker-News-build/actions/runs/46043419459) 结论都是 success：
+
+| job | push | pull_request |
+| --- | --- | --- |
+| `test` | success [140656562533](https://github.com/bob1525/Hacker-News-build/actions/runs/46043411774/job/140656562533) | success [140656589698](https://github.com/bob1525/Hacker-News-build/actions/runs/46043419459/job/140656589698) |
+| `postgres` | success [140656562462](https://github.com/bob1525/Hacker-News-build/actions/runs/46043411774/job/140656562462) | success [140656589621](https://github.com/bob1525/Hacker-News-build/actions/runs/46043419459/job/140656589621) |
+| `redis` | success [140656562120](https://github.com/bob1525/Hacker-News-build/actions/runs/46043411774/job/140656562120) | success [140656589416](https://github.com/bob1525/Hacker-News-build/actions/runs/46043419459/job/140656589416) |
 
 ## 证据
 
@@ -108,6 +116,6 @@ npm run test:e2e
 - 未登录折叠在这个浏览器的 `localStorage`。清站点数据或换浏览器会丢。
 - `MAIL_LOG_PATH` 会把整封信写进文件。默认不设置。
 - Prisma 的 SQLite `DateTime` 写不进大约公元 886 年以前，热度 SQL 因此到不了 `1e8` 小时以上的真实 `createdAt`。更大的年龄用同一段牛顿迭代在查询里比较，40 步在 `x = 1e12` 以内与 `x ** 1.8` 的相对误差小于 `1e-9`。
-- 本文件这一笔提交的 CI 还没跑。阶段 4 的三个 job 已经成功。审计头的结果等这次 push 结束再记，不在它还在跑的时候另开一轮。
+- 审计头 `4b05842` 的 `test`、`postgres`、`redis` 已经成功。这一笔只把那次结果写进本文件，不再为记录提交本身另开一轮。
 
 不开始第十一轮。
