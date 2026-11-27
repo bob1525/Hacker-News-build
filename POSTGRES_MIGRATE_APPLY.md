@@ -9,7 +9,7 @@ CI 的 `postgres` job 不再用 `prisma db push` 当作迁移证据。它安装 
 1. 拒绝非 PostgreSQL 的 `DATABASE_URL`。
 2. 读取 `POSTGRES_SCHEMA`，否则用 URL 里的 `schema`，默认 `public`。
 3. `DROP SCHEMA ... CASCADE` 后 `CREATE SCHEMA`，再 `SET search_path`，因此执行前这个 schema 是空的。
-4. 按文件名顺序用 `psql -v ON_ERROR_STOP=1` 执行 `prisma/migrations-postgres/*.sql`。现在只有 `0001_init.sql`。没有读取 `prisma/migrations` 里的 SQLite SQL。
+4. 按文件名顺序用 `psql -v ON_ERROR_STOP=1` 执行 `prisma/migrations-postgres/*.sql`。目前是 `0001_init.sql` 和阶段 3 追加的 `0002_comment_collapse.sql`。没有读取 `prisma/migrations` 里的 SQLite SQL。
 5. `--generate` 时才生成 PostgreSQL Prisma Client。仓库里的 `prisma/schema.prisma` 仍是 `sqlite`。
 6. 漂移检查。退出码 0 表示没有差异，2 表示有差异。
 7. 在该 schema 写入并删除一行 `User`，确认表可写。

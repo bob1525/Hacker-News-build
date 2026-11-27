@@ -61,7 +61,17 @@ npx eslint scripts/next-dev-exit.cjs tests/unit/next-dev-exit.test.ts tests/unit
 | `postgres` [140436733070](https://github.com/bob1525/Hacker-News-build/actions/runs/45978671119/job/140436733070) | success | 2026-11-27 10:02:16Z 到 10:03:20Z |
 | `test` [140436733162](https://github.com/bob1525/Hacker-News-build/actions/runs/45978671119/job/140436733162) | success | 2026-11-27 10:02:16Z 到 10:04:23Z |
 
-`redis:7` 已经启动。失败断言是 6 次调用里放行了 4 次，限额是 2。两个连接用了不同的键前缀，所以各自有一份限额。测试已改为同一个前缀。同一次运行里 `postgres` 对空 schema 执行迁移并漂移检查通过，`test` 为 148 passed、1 skipped、端到端 `23 passed (1.0m)`。修正后的 Redis 结果记在随后的运行里。
+`redis:7` 已经启动。失败断言是 6 次调用里放行了 4 次，限额是 2。两个连接用了不同的键前缀，所以各自有一份限额。测试已改为同一个前缀。同一次运行里 `postgres` 对空 schema 执行迁移并漂移检查通过，`test` 为 148 passed、1 skipped、端到端 `23 passed (1.0m)`。
+
+修正后的 push 运行 [45979073383](https://github.com/bob1525/Hacker-News-build/actions/runs/45979073383) 结论 success：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `redis` [140438073984](https://github.com/bob1525/Hacker-News-build/actions/runs/45979073383/job/140438073984) | success | 2026-11-27 10:05:08Z 到 10:05:56Z |
+| `postgres` [140438074539](https://github.com/bob1525/Hacker-News-build/actions/runs/45979073383/job/140438074539) | success | 2026-11-27 10:05:08Z 到 10:06:16Z |
+| `test` [140438074261](https://github.com/bob1525/Hacker-News-build/actions/runs/45979073383/job/140438074261) | success | 2026-11-27 10:05:08Z 到 10:07:19Z |
+
+`redis` job：`tests/unit/rate-limit-redis-live.test.ts (1 test)`，`1 passed`。`postgres` 对 `public`、`ranking_sql`、`collapse`、`search`、`concurrency` 的漂移检查都通过，单元测试 `148 passed | 1 skipped`。`test` 同样是 `148 passed | 1 skipped`，端到端 `23 passed (1.0m)`。跳过的是没有 `REDIS_INTEGRATION=1` 的真实 Redis 测试。
 
 ## Redis 与 mock Lua 的边界
 
@@ -71,5 +81,5 @@ npx eslint scripts/next-dev-exit.cjs tests/unit/next-dev-exit.test.ts tests/unit
 
 - 直接执行 `npx next dev` 不会加载这个钩子。Next.js 父进程仍会以 0 结束。要用 `npm run dev`。
 - `next start` 本来就会在密钥不合格时以 1 结束。这次没有改生产服务器的退出路径。
-- 第一次真实 Redis 运行因为测试使用了两个键前缀而失败，不是 Lua 把限额放宽。修正后的 job 结果另记。
+- 第一次真实 Redis 运行因为测试使用了两个键前缀而失败。同一个前缀之后，`redis` job 通过。mock 仍然不是多机 Redis。
 - 生产改用 PostgreSQL 时必须改 datasource provider。只改 `DATABASE_URL` 而留下 `provider = "sqlite"` 不会连上 PostgreSQL。

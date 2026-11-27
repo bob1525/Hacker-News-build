@@ -28,13 +28,13 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 - 注册、登录、退出。不能投票给自己的帖子或评论，可以取消已投的票。
 - 发布帖子：标题，外加 URL、正文，或两者都有。标题以 `Show HN:` 开头会出现在 Show 页；不填 URL 的文字帖出现在 Ask 页。
 - 首页按热度排序，New 页按时间排序，每页 30 条，底部有 More。
-- 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度和 Newest 下推到 SQL，搜索仍在内存里排序，见 [RANKING_DB.md](RANKING_DB.md) 和 [RANKING_EXTEND.md](RANKING_EXTEND.md)。
-- 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。
+- 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度和 Newest 下推到 SQL，见 [RANKING_DB.md](RANKING_DB.md) 和 [RANKING_EXTEND.md](RANKING_EXTEND.md)。
+- 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。SQL 先筛出候选，再用同一套 `searchRelevance` 打分，只装载当前页，见 [SEARCH_SCALE.md](SEARCH_SCALE.md)。
 - 空状态、加载骨架和表单错误提示。
 
 ### 评论
 
-- 多层回复最多 8 层，可以折叠。折叠状态保存在当前浏览器会话的 `sessionStorage`（键 `hn-collapsed-comments`）。刷新或离开后再回来仍然折叠；新会话全部展开。
+- 多层回复最多 8 层，可以折叠。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户仍用当前浏览器会话的 `sessionStorage`（键 `hn-collapsed-comments`），见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
 - 排序规则：先按票数降序，票数相同再按时间升序（更早的在前）。票数和时间都相同则按 id 字典序。没有票的线程因此仍是从旧到新。
 - 登录用户可以给别人的评论 upvote，再点一次取消。不能给自己的评论投票，也不能给已软删除的评论投票。
 - Karma 是别人投给你的帖子票和评论票之和。自己投自己的不计。取消评论票会把对应 karma 减回去。软删除不撤销已经投出的票，karma 保持原样。
@@ -171,6 +171,14 @@ npx tsx scripts/scale-bench.ts
 - [RANKING_EXTEND.md](RANKING_EXTEND.md)
 - [SIXTH_ROUND_AUDIT.md](SIXTH_ROUND_AUDIT.md)
 
+第七轮在空 PostgreSQL 上执行迁移 SQL，缩小搜索装载范围，把已登录用户的评论折叠写入数据库，并让 `npm run dev` 在密钥不合格时返回工作进程的退出码：
+
+- [POSTGRES_MIGRATE_APPLY.md](POSTGRES_MIGRATE_APPLY.md)
+- [SEARCH_SCALE.md](SEARCH_SCALE.md)
+- [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)
+- [PRODUCTION_DEFAULTS.md](PRODUCTION_DEFAULTS.md)
+- [SEVENTH_ROUND_AUDIT.md](SEVENTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
@@ -214,7 +222,7 @@ npx tsx scripts/scale-bench.ts
 - `app/guidelines/`
 - `components/` 列表、投票、评论树、收藏按钮、关注按钮、表单
 - `lib/domain/` 热度 `ranking.ts`、分页 `pagination.ts`、评论树 `comments.ts`、编辑删除 `comment-moderation.ts`、收藏关注 `social.ts`、速率 `rate-limit.ts`、重复检测 `duplicate.ts`、搜索、karma
-- `lib/actions/auth.ts`、`lib/actions/posts.ts`、`lib/actions/comments.ts`、`lib/actions/votes.ts`、`lib/actions/social.ts`
+- `lib/actions/auth.ts`、`lib/actions/posts.ts`、`lib/actions/comments.ts`、`lib/actions/votes.ts`、`lib/actions/social.ts`、`lib/actions/comment-collapse.ts`
 - `lib/auth-secret.ts` 与 `instrumentation.ts`：启动时拒绝缺失、占位符或过短的 `AUTH_SECRET`
 - `prisma/` schema、迁移和种子数据
 - `scripts/scale-bench.ts` 规模测量，`scripts/capture-screenshots.mjs` 截图
