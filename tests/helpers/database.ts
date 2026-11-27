@@ -14,6 +14,7 @@ const sqliteFiles: Record<string, string> = {
   sessionManage: "/tmp/hn-session-manage.db",
   searchUnicode: "/tmp/hn-search-unicode.db",
   searchFold: "/tmp/hn-search-fold.db",
+  searchCasefold: "/tmp/hn-search-casefold.db",
   emailChange: "/tmp/hn-email-change.db",
   downvotes: "/tmp/hn-downvotes.db",
   depth: "/tmp/hn-comment-depth.db",
