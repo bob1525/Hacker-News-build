@@ -11,6 +11,26 @@ import { guardRateLimit } from "@/lib/limits";
 import { MailDeliveryError, type Mailer } from "@/lib/mailer";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+$/;
+const CONFIRM_SUBJECT = "Confirm your new email";
+const REQUEST_NOTICE_SUBJECT = "Email change requested";
+const CHANGED_NOTICE_SUBJECT = "Your email was changed";
+
+function assertNoticeHasNoLink(text: string): void {
+  if (/token=|\/change-email/i.test(text)) {
+    throw new Error("Email-change notices must not include a confirmation link.");
+  }
+}
+
+/** A notice to the old address is best-effort. A delivery failure does not undo the change. */
+async function sendOldAddressNotice(mailer: Mailer, mail: { to: string; subject: string; text: string }): Promise<void> {
+  assertNoticeHasNoLink(mail.text);
+  try {
+    await mailer.send(mail);
+  } catch (error) {
+    if (error instanceof MailDeliveryError) return;
+    throw error;
+  }
+}
 
 class EmailAlreadyUsed extends Error {
   constructor() {
@@ -62,20 +82,27 @@ export async function requestEmailChange(
   try {
     await mailer.send({
       to: normalized,
-      subject: "Confirm your new email",
+      subject: CONFIRM_SUBJECT,
       text: `Hi ${user.username}, open this link within 1 hour to confirm ${normalized}:\n${link}\nYour current address stays in place until you do.\n`,
     });
   } catch (error) {
     if (error instanceof MailDeliveryError) {
+      await db.emailChangeToken.deleteMany({ where: { tokenHash: secret.tokenHash } });
       return { ok: false, error: "Could not send the confirmation email. Please try again." };
     }
     throw error;
   }
+  await sendOldAddressNotice(mailer, {
+    to: user.email,
+    subject: REQUEST_NOTICE_SUBJECT,
+    text: `Hi ${user.username}, a request was made to change the email on this account from ${user.email} to ${normalized}. If this was not you, you can ignore this message.\n`,
+  });
   return { ok: true, sent: true };
 }
 
 export async function confirmEmailChange(
   db: PrismaClient,
+  mailer: Mailer,
   raw: string,
   now = new Date(),
 ): Promise<{ ok: true; username: string } | { ok: false; error: string }> {
@@ -87,7 +114,7 @@ export async function confirmEmailChange(
   if (acceptance === "used") return { ok: false, error: "That confirmation link was already used." };
 
   try {
-    const username = await db.$transaction(async (tx) => {
+    const changed = await db.$transaction(async (tx) => {
       const updated = await tx.emailChangeToken.updateMany({
         where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
@@ -95,6 +122,8 @@ export async function confirmEmailChange(
       if (updated.count !== 1) return null;
       const taken = await tx.user.findUnique({ where: { email: row.newEmail }, select: { id: true } });
       if (taken && taken.id !== row.userId) throw new EmailAlreadyUsed();
+      const current = await tx.user.findUnique({ where: { id: row.userId }, select: { email: true, username: true } });
+      if (!current) return null;
       const user = await tx.user.update({
         where: { id: row.userId },
         data: { email: row.newEmail, emailVerifiedAt: now },
@@ -104,10 +133,15 @@ export async function confirmEmailChange(
         where: { userId: row.userId, usedAt: null },
         data: { usedAt: now },
       });
-      return user.username;
+      return { username: user.username, previousEmail: current.email };
     });
-    if (!username) return { ok: false, error: "That confirmation link is not valid." };
-    return { ok: true, username };
+    if (!changed) return { ok: false, error: "That confirmation link is not valid." };
+    await sendOldAddressNotice(mailer, {
+      to: changed.previousEmail,
+      subject: CHANGED_NOTICE_SUBJECT,
+      text: `Hi ${changed.username}, the email on this account changed from ${changed.previousEmail} to ${row.newEmail}. If this was not you, reset your password.\n`,
+    });
+    return { ok: true, username: changed.username };
   } catch (error) {
     if (error instanceof EmailAlreadyUsed) return { ok: false, error: error.message };
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

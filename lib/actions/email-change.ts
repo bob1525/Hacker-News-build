@@ -38,7 +38,7 @@ export async function confirmEmailChangeAction(_prev: FormState, formData: FormD
   }
   let username = "";
   try {
-    const result = await confirmEmailChange(prisma, token, new Date());
+    const result = await confirmEmailChange(prisma, createMailer(), token, new Date());
     if (!result.ok) return { error: result.error };
     username = result.username;
   } catch (error) {
