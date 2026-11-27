@@ -29,7 +29,7 @@ npm run test:e2e
 | 2 搜索可扩展性 | [SEARCH_SCALE.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SEARCH_SCALE.md) | `24892f1a5606356a0193b757efdfc640a43553c0` | 3 |
 | 3 评论折叠持久化 | [COMMENT_COLLAPSE.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/COMMENT_COLLAPSE.md) | `7528da037f4cdae8b12b90fa4b51f98bc3f014d1` | 4 |
 | 4 生产配置与启动校验 | [PRODUCTION_DEFAULTS.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/PRODUCTION_DEFAULTS.md) | `41a860fc75a80964a2cf6978936c1543ff734992`、`db40895b82595d069cec2f3d917346692ccf035b` | 3 |
-| 5 本审计 | [SEVENTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SEVENTH_ROUND_AUDIT.md) | 本提交 | 0 |
+| 5 本审计 | [SEVENTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SEVENTH_ROUND_AUDIT.md) | `d2a18ec2461b7c2910eefaeda199ba42d370bdff` 与记录该次 CI 的后续提交 | 0 |
 
 ### 阶段 1
 
@@ -81,6 +81,16 @@ npm run test:e2e
 | `test` [140438074261](https://github.com/bob1525/Hacker-News-build/actions/runs/45979073383/job/140438074261) | success | 2026-11-27 10:05:08Z 到 10:07:19Z |
 
 `postgres` 对空 schema `public` 执行迁移 SQL，漂移检查通过，随后 `ranking_sql`、`collapse`、`search`、`concurrency` 也通过。单元测试 `148 passed | 1 skipped`。`test` job 同样是 `148 passed | 1 skipped`，端到端 `23 passed (1.0m)`。`redis` job 对 `redis:7` 执行 `tests/unit/rate-limit-redis-live.test.ts`，`1 passed`。Node.js 20 弃用提示没有让 job 失败。
+
+审计提交 `d2a18ec2461b7c2910eefaeda199ba42d370bdff` 的 push 运行 [45979520726](https://github.com/bob1525/Hacker-News-build/actions/runs/45979520726) 结论 success：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `postgres` [140439558932](https://github.com/bob1525/Hacker-News-build/actions/runs/45979520726/job/140439558932) | success | 2026-11-27 10:08:12Z 到 10:09:58Z，约 1 分 46 秒 |
+| `test` [140439559358](https://github.com/bob1525/Hacker-News-build/actions/runs/45979520726/job/140439559358) | success | 2026-11-27 10:08:13Z 到 10:10:16Z，约 2 分 3 秒 |
+| `redis` [140439559438](https://github.com/bob1525/Hacker-News-build/actions/runs/45979520726/job/140439559438) | success | 2026-11-27 10:08:13Z 到 10:09:03Z，约 50 秒 |
+
+`postgres` 再次对空 schema `public` 做漂移检查并通过，单元测试 `148 passed | 1 skipped`。`test` 同样是 `148 passed | 1 skipped`，端到端 `23 passed (59.0s)`。`redis` 为 `1 passed`。这次运行包含本轮文档。记录该结果的提交只改这份审计。
 
 ## 剩余限制
 
