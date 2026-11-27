@@ -22,8 +22,21 @@ model User {
   favorites    Favorite[]
   following    Follow[]      @relation("UserFollows")
   followers    Follow[]      @relation("UserFollowers")
-  collapses    CommentCollapse[]
-  emailTokens  EmailVerificationToken[]
+  collapses      CommentCollapse[]
+  emailTokens    EmailVerificationToken[]
+  passwordResets PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model EmailVerificationToken {

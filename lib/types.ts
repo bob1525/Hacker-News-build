@@ -1,5 +1,6 @@
 export type FormState = {
   error?: string;
+  notice?: string;
   fieldErrors?: Partial<Record<string, string>>;
   /** Ask the browser to reload the current page after a successful comment write. */
   refresh?: boolean;
