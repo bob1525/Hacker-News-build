@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EmailChangeForm } from "@/components/email-change-form";
+import { SignOutOthersForm } from "@/components/sign-out-others-form";
 import { EmptyState } from "@/components/empty-state";
 import { FollowButton } from "@/components/follow-button";
 import { PostRow } from "@/components/post-row";
@@ -58,6 +59,10 @@ export default async function UserPage({ params }: Params) {
             <dt className="text-hn-sub">change</dt>
             <dd>
               <EmailChangeForm />
+            </dd>
+            <dt className="text-hn-sub">sessions</dt>
+            <dd>
+              <SignOutOthersForm />
             </dd>
           </>
         ) : null}

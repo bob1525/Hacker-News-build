@@ -11,6 +11,7 @@ const sqliteFiles: Record<string, string> = {
   emailDelivery: "/tmp/hn-email-delivery.db",
   passwordReset: "/tmp/hn-password-reset.db",
   sessionRevoke: "/tmp/hn-session-revoke.db",
+  sessionManage: "/tmp/hn-session-manage.db",
   searchUnicode: "/tmp/hn-search-unicode.db",
   searchFold: "/tmp/hn-search-fold.db",
   emailChange: "/tmp/hn-email-change.db",

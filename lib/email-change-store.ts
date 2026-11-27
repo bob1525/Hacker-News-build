@@ -105,7 +105,7 @@ export async function confirmEmailChange(
   mailer: Mailer,
   raw: string,
   now = new Date(),
-): Promise<{ ok: true; username: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; username: string; userId: string; sessionVersion: number } | { ok: false; error: string }> {
   const tokenHash = hashEmailChangeToken(raw.trim());
   const row = await db.emailChangeToken.findUnique({ where: { tokenHash } });
   if (!row) return { ok: false, error: "That confirmation link is not valid." };
@@ -126,14 +126,14 @@ export async function confirmEmailChange(
       if (!current) return null;
       const user = await tx.user.update({
         where: { id: row.userId },
-        data: { email: row.newEmail, emailVerifiedAt: now },
-        select: { username: true },
+        data: { email: row.newEmail, emailVerifiedAt: now, sessionVersion: { increment: 1 } },
+        select: { id: true, username: true, sessionVersion: true },
       });
       await tx.emailChangeToken.updateMany({
         where: { userId: row.userId, usedAt: null },
         data: { usedAt: now },
       });
-      return { username: user.username, previousEmail: current.email };
+      return { username: user.username, userId: user.id, sessionVersion: user.sessionVersion, previousEmail: current.email };
     });
     if (!changed) return { ok: false, error: "That confirmation link is not valid." };
     await sendOldAddressNotice(mailer, {
@@ -141,7 +141,7 @@ export async function confirmEmailChange(
       subject: CHANGED_NOTICE_SUBJECT,
       text: `Hi ${changed.username}, the email on this account changed from ${changed.previousEmail} to ${row.newEmail}. If this was not you, reset your password.\n`,
     });
-    return { ok: true, username: changed.username };
+    return { ok: true, username: changed.username, userId: changed.userId, sessionVersion: changed.sessionVersion };
   } catch (error) {
     if (error instanceof EmailAlreadyUsed) return { ok: false, error: error.message };
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

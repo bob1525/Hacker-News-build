@@ -84,11 +84,11 @@ describe("email change persistence", () => {
     expect(before.sessionVersion).toBe(0);
 
     const confirmed = await confirmEmailChange(db, mailer, raw, now);
-    expect(confirmed).toEqual({ ok: true, username: "mailmove" });
+    expect(confirmed).toEqual({ ok: true, username: "mailmove", userId: user.id, sessionVersion: 1 });
     const after = await db.user.findUniqueOrThrow({ where: { id: user.id } });
     expect(after.email).toBe("next@example.com");
     expect(after.emailVerifiedAt?.toISOString()).toBe(now.toISOString());
-    expect(after.sessionVersion).toBe(0);
+    expect(after.sessionVersion).toBe(1);
     expect(await db.user.findUnique({ where: { email: "mailmove@example.com" } })).toBeNull();
     const changedNotice = recordedMail().find((entry) => entry.subject === "Your email was changed");
     expect(changedNotice?.to).toBe("mailmove@example.com");
@@ -122,7 +122,12 @@ describe("email change persistence", () => {
     const mailer = createMailer({ NODE_ENV: "test" });
     expect(await requestEmailChange(db, mailer, user.id, "later@example.com", now)).toEqual({ ok: true, sent: true });
     expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe("mailfailchange@example.com");
-    expect(await confirmEmailChange(db, mailer, rawFromMail(), now)).toEqual({ ok: true, username: "mailfailchange" });
+    expect(await confirmEmailChange(db, mailer, rawFromMail(), now)).toEqual({
+      ok: true,
+      username: "mailfailchange",
+      userId: user.id,
+      sessionVersion: 1,
+    });
     expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe("later@example.com");
   });
 
@@ -210,7 +215,12 @@ describe("email change persistence", () => {
         throw new MailDeliveryError();
       },
     };
-    expect(await confirmEmailChange(db, confirming, raw, now)).toEqual({ ok: true, username: "noticemail" });
+    expect(await confirmEmailChange(db, confirming, raw, now)).toEqual({
+      ok: true,
+      username: "noticemail",
+      userId: user.id,
+      sessionVersion: 1,
+    });
     expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe("notice-next@example.com");
   });
 });
