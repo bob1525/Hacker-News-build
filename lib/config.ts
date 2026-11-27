@@ -1,5 +1,13 @@
 export const PAGE_SIZE = 30;
-export const MAX_COMMENT_DEPTH = 8;
+/**
+ * A reply is rejected when its parent is already this deep.
+ * 16 keeps a hard stop and doubles the previous cap of 8.
+ * The first level is the root comment.
+ */
+export const MAX_COMMENT_DEPTH = 16;
+/** Pixels added per nested reply. Stops growing so a deep thread stays on screen. */
+export const COMMENT_INDENT_PX = 12;
+export const COMMENT_INDENT_CAP_PX = 120;
 /** Authors can edit a comment until this long after it was created. */
 export const COMMENT_EDIT_WINDOW_MS = 15 * 60 * 1000;
 

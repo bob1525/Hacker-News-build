@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { setCommentCollapsed } from "@/lib/actions/comment-collapse";
 import { deleteComment } from "@/lib/actions/comments";
 import { COLLAPSED_COMMENTS_KEY, parseCollapsedIds, toggleCollapsedId } from "@/lib/domain/collapsed-comments";
+import { canReplyAtDepth, commentIndentPx } from "@/lib/domain/comments";
 import { plural } from "@/lib/domain/format";
 import { formatRelative } from "@/lib/domain/time";
 import type { CommentDTO } from "@/lib/types";
@@ -41,7 +42,8 @@ function CommentItem({
   const collapsed = collapsedIds.includes(node.id);
   const owns = viewerId === node.author.id;
   const descendants = descendantCount(node);
-  const indent = depth === 0 ? 0 : Math.min(depth * 12, 72);
+  const indent = commentIndentPx(depth);
+  const canReply = canReplyAtDepth(depth + 1);
 
   useEffect(() => {
     setPoints(node.points);
@@ -140,7 +142,7 @@ function CommentItem({
             </div>
             {editing && node.editable ? <EditCommentForm commentId={node.id} initialText={node.text} /> : null}
             <div className="flex gap-2 text-[11px] text-hn-sub">
-              {viewerId && !node.deleted ? (
+              {canReply && viewerId && !node.deleted ? (
                 <button
                   type="button"
                   onClick={() => setReplyOpen((value) => !value)}
@@ -148,11 +150,11 @@ function CommentItem({
                 >
                   reply
                 </button>
-              ) : node.deleted ? null : (
+              ) : canReply && !node.deleted ? (
                 <a href={`/login?next=${encodeURIComponent(`/item/${postId}`)}`} className="underline">
                   reply
                 </a>
-              )}
+              ) : null}
               {node.editable ? (
                 <button type="button" onClick={() => setEditing((value) => !value)} className="cursor-pointer underline">
                   edit

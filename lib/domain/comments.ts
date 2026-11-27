@@ -1,4 +1,45 @@
+import { COMMENT_INDENT_CAP_PX, COMMENT_INDENT_PX, MAX_COMMENT_DEPTH } from "@/lib/config";
+
 export type ThreadNode<T> = T & { replies: ThreadNode<T>[] };
+
+/** True when a reply to a comment at parentDepth would still be inside the cap. */
+export function canReplyAtDepth(parentDepth: number, maxDepth = MAX_COMMENT_DEPTH): boolean {
+  return Number.isInteger(parentDepth) && parentDepth >= 1 && parentDepth < maxDepth;
+}
+
+export function replyDepthError(maxDepth = MAX_COMMENT_DEPTH): string {
+  return `Replies only nest ${maxDepth} levels deep.`;
+}
+
+/** Visual indent. Levels past the pixel cap stay at the cap and still render. */
+export function commentIndentPx(depth: number): number {
+  if (!Number.isFinite(depth) || depth <= 0) return 0;
+  return Math.min(depth * COMMENT_INDENT_PX, COMMENT_INDENT_CAP_PX);
+}
+
+/**
+ * Depth of a comment, counting itself as 1. Walks parents and stops on a cycle
+ * or past the cap so a loop cannot run forever.
+ */
+export async function ancestorDepth(
+  startId: string,
+  parentOf: (id: string) => Promise<string | null | undefined> | string | null | undefined,
+  maxDepth = MAX_COMMENT_DEPTH,
+): Promise<number> {
+  let depth = 1;
+  let current: string | null = startId;
+  const seen = new Set<string>();
+  while (current) {
+    if (seen.has(current)) return depth;
+    seen.add(current);
+    const parentId = await parentOf(current);
+    if (!parentId) break;
+    current = parentId;
+    depth += 1;
+    if (depth > maxDepth + 2) break;
+  }
+  return depth;
+}
 
 /**
  * Siblings: more points first. Equal points stay oldest-first, then id.

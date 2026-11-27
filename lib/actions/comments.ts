@@ -1,7 +1,8 @@
 "use server";
 
 import { unstable_rethrow } from "next/navigation";
-import { COMMENT_DUPLICATE_WINDOW_MS, MAX_COMMENT_DEPTH } from "@/lib/config";
+import { COMMENT_DUPLICATE_WINDOW_MS } from "@/lib/config";
+import { ancestorDepth, canReplyAtDepth, replyDepthError } from "@/lib/domain/comments";
 import { canDeleteComment, canEditComment } from "@/lib/domain/comment-moderation";
 import { emailVerificationBlock } from "@/lib/domain/email-verification";
 import { hasRecentDuplicate } from "@/lib/domain/duplicate";
@@ -12,24 +13,13 @@ import type { ActionResult, FormState } from "@/lib/types";
 import { commentSchema, editCommentSchema, fieldErrors, formString } from "@/lib/validators";
 
 async function commentDepth(id: string): Promise<number> {
-  let depth = 1;
-  let current: string | null = id;
-  const seen = new Set<string>();
-
-  while (current) {
-    if (seen.has(current)) return depth;
-    seen.add(current);
+  return ancestorDepth(id, async (current) => {
     const row: { parentId: string | null } | null = await prisma.comment.findUnique({
       where: { id: current },
       select: { parentId: true },
     });
-    if (!row?.parentId) break;
-    current = row.parentId;
-    depth += 1;
-    if (depth > MAX_COMMENT_DEPTH + 2) break;
-  }
-
-  return depth;
+    return row?.parentId ?? null;
+  });
 }
 
 export async function createComment(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -77,8 +67,8 @@ export async function createComment(_prev: FormState, formData: FormData): Promi
         return { error: "The comment you are replying to is not on this post." };
       }
       const depth = await commentDepth(parent.id);
-      if (depth >= MAX_COMMENT_DEPTH) {
-        return { error: `Replies only nest ${MAX_COMMENT_DEPTH} levels deep.` };
+      if (!canReplyAtDepth(depth)) {
+        return { error: replyDepthError() };
       }
     }
 
