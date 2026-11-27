@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { computeKarma } from "@/lib/domain/karma";
-import { readSessionUserId } from "@/lib/session";
+import { readSessionClaimsFromCookie } from "@/lib/session";
+import { sessionVersionMatches } from "@/lib/session-token";
 
 export type CurrentUser = {
   id: string;
@@ -14,10 +15,10 @@ export type CurrentUser = {
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  const userId = await readSessionUserId();
-  if (!userId) return null;
-  return prisma.user.findUnique({
-    where: { id: userId },
+  const claims = await readSessionClaimsFromCookie();
+  if (!claims) return null;
+  const user = await prisma.user.findUnique({
+    where: { id: claims.userId },
     select: {
       id: true,
       username: true,
@@ -25,8 +26,18 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       about: true,
       emailVerifiedAt: true,
       createdAt: true,
+      sessionVersion: true,
     },
   });
+  if (!user || !sessionVersionMatches(claims, user.sessionVersion)) return null;
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    about: user.about,
+    emailVerifiedAt: user.emailVerifiedAt,
+    createdAt: user.createdAt,
+  };
 });
 
 export async function getKarma(userId: string): Promise<number> {

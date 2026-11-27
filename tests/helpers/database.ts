@@ -10,6 +10,7 @@ const sqliteFiles: Record<string, string> = {
   email: "/tmp/hn-email.db",
   emailDelivery: "/tmp/hn-email-delivery.db",
   passwordReset: "/tmp/hn-password-reset.db",
+  sessionRevoke: "/tmp/hn-session-revoke.db",
   searchUnicode: "/tmp/hn-search-unicode.db",
   downvotes: "/tmp/hn-downvotes.db",
   depth: "/tmp/hn-comment-depth.db",

@@ -30,7 +30,7 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
     return { error: "Invalid username or password." };
   }
 
-  await setSession(user.id);
+  await setSession(user.id, user.sessionVersion);
   redirect(safeNextPath(formString(formData, "next")));
 }
 
