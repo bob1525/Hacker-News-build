@@ -61,11 +61,34 @@ Duration    2.53s
 
 139 与开工前相同。本阶段没有新增测试，也没有删除或放宽原有断言。
 
-GitHub Actions 的空库执行结果在推送之后补记。
+推送运行 [45977501868](https://github.com/bob1525/Hacker-News-build/actions/runs/45977501868) 结论 success：
+
+| job | 结果 | 时间 |
+| --- | --- | --- |
+| `postgres` [140432813200](https://github.com/bob1525/Hacker-News-build/actions/runs/45977501868/job/140432813200) | success | 2026-11-27 09:53:48Z 到 09:55:35Z，约 1 分 47 秒 |
+| `test` [140432813418](https://github.com/bob1525/Hacker-News-build/actions/runs/45977501868/job/140432813418) | success | 2026-11-27 09:53:47Z 到 09:55:54Z，约 2 分 7 秒 |
+
+`postgres` 日志：
+
+```text
+Applying PostgreSQL migration SQL to empty schema public
+CREATE TABLE
+PostgreSQL migration drift check passed for schema public
+PostgreSQL migration SQL applied on empty schema public
+Applying PostgreSQL migration SQL to empty schema ranking_sql
+PostgreSQL migration drift check passed for schema ranking_sql
+✓ tests/unit/ranking-sql.test.ts (8 tests)
+Applying PostgreSQL migration SQL to empty schema concurrency
+PostgreSQL migration drift check passed for schema concurrency
+Test Files  24 passed (24)
+Tests       139 passed (139)
+```
+
+漂移检查退出码为 0，没有可接受差异需要单独说明。`test` job 仍是 SQLite：139 个单元测试，端到端 `23 passed (49.9s)`。
 
 ## 发现的问题
 
 - `prisma db execute` 把整段脚本交给查询引擎。多语句迁移在 prepared statement 里经常被拒绝，所以执行改用 `psql -f`。漂移检查仍用 Prisma。
 - `?schema=` 是 Prisma 的参数，libpq 不认识。`psql` 使用去掉 query 的连接串，schema 由 `SET search_path` 指定。
-- 本机没有 PostgreSQL，无法在提交前对空库执行 SQL。若 CI 的漂移检查失败，先修 SQL 或在本文写明可接受差异，再进入下一阶段。
+- 本机没有 PostgreSQL，空库执行只在 CI 上做过。那次漂移检查没有差异。
 - 端到端和默认开发库仍是 SQLite。`scripts/push-postgres-schema.sh` 还在，但 `postgres` job 不再调用它。
