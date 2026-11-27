@@ -27,6 +27,19 @@ model User {
   emailTokens    EmailVerificationToken[]
   passwordResets PasswordResetToken[]
   emailChanges   EmailChangeToken[]
+  sessions       Session[]
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent  String    @default("")
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime
+  revokedAt  DateTime?
+
+  @@index([userId])
 }
 
 model PasswordResetToken {

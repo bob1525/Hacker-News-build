@@ -20,7 +20,7 @@ describe("session version claims", () => {
   it("rejects a token whose version is behind the user", async () => {
     const before = await signSession("user_1", 0);
     const claims = await readSessionClaims(before);
-    expect(claims).toEqual({ userId: "user_1", sessionVersion: 0 });
+    expect(claims).toEqual({ userId: "user_1", sessionVersion: 0, sessionId: null });
     expect(sessionVersionMatches(claims!, 0)).toBe(true);
     expect(sessionVersionMatches(claims!, 1)).toBe(false);
   });

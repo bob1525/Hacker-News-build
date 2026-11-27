@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { confirmEmailChange, requestEmailChange } from "@/lib/email-change-store";
 import { createMailer } from "@/lib/mailer";
-import { setSession } from "@/lib/session";
+import { requestUserAgent, setSession } from "@/lib/session";
 import { currentBrowserKeepsSession } from "@/lib/session-management";
 import type { FormState } from "@/lib/types";
 import { emailSchema, formString } from "@/lib/validators";
@@ -44,7 +44,7 @@ export async function confirmEmailChangeAction(_prev: FormState, formData: FormD
     const result = await confirmEmailChange(prisma, createMailer(), token, new Date());
     if (!result.ok) return { error: result.error };
     if (currentBrowserKeepsSession(viewer?.id, result.userId)) {
-      await setSession(result.userId, result.sessionVersion);
+      await setSession(result.userId, result.sessionVersion, await requestUserAgent());
     }
     username = result.username;
   } catch (error) {

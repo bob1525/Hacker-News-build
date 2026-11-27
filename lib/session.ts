@@ -1,6 +1,8 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { SESSION_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/config";
+import { prisma } from "@/lib/db";
+import { openSession } from "@/lib/session-devices";
 import { readSessionClaims, signSession, type SessionClaims } from "@/lib/session-token";
 
 function cookieOptions(maxAge: number) {
@@ -13,8 +15,14 @@ function cookieOptions(maxAge: number) {
   };
 }
 
-export async function setSession(userId: string, sessionVersion = 0): Promise<void> {
-  const token = await signSession(userId, sessionVersion);
+export async function requestUserAgent(): Promise<string> {
+  const incoming = await headers();
+  return incoming.get("user-agent") ?? "";
+}
+
+export async function setSession(userId: string, sessionVersion = 0, userAgent = ""): Promise<void> {
+  const opened = await openSession(prisma, userId, userAgent);
+  const token = await signSession(userId, sessionVersion, opened.id);
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, cookieOptions(SESSION_MAX_AGE_SECONDS));
 }

@@ -129,6 +129,10 @@ export async function confirmEmailChange(
         data: { email: row.newEmail, emailVerifiedAt: now, sessionVersion: { increment: 1 } },
         select: { id: true, username: true, sessionVersion: true },
       });
+      await tx.session.updateMany({
+        where: { userId: row.userId, revokedAt: null },
+        data: { revokedAt: now },
+      });
       await tx.emailChangeToken.updateMany({
         where: { userId: row.userId, usedAt: null },
         data: { usedAt: now },

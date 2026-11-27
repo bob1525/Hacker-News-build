@@ -77,6 +77,10 @@ export async function resetPassword(
       where: { id: row.userId },
       data: { passwordHash, sessionVersion: { increment: 1 } },
     });
+    await tx.session.updateMany({
+      where: { userId: row.userId, revokedAt: null },
+      data: { revokedAt: now },
+    });
     await tx.passwordResetToken.updateMany({
       where: { userId: row.userId, usedAt: null },
       data: { usedAt: now },

@@ -10,6 +10,8 @@ function secretKey(): Uint8Array {
 export type SessionClaims = {
   userId: string;
   sessionVersion: number;
+  /** Null when the cookie was issued before device sessions existed. */
+  sessionId: string | null;
 };
 
 /** Missing or non-integer `sv` counts as 0, which is the version of tokens issued before this claim existed. */
@@ -21,8 +23,16 @@ export function sessionVersionMatches(claims: SessionClaims, currentVersion: num
   return claims.sessionVersion === currentVersion;
 }
 
-export async function signSession(userId: string, sessionVersion = 0): Promise<string> {
-  return new SignJWT({ sv: sessionVersionFromClaim(sessionVersion) })
+/** Missing or blank `sid` means a legacy cookie with no device row. */
+export function sessionIdFromClaim(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 && value.length <= 64 ? value : null;
+}
+
+export async function signSession(userId: string, sessionVersion = 0, sessionId?: string | null): Promise<string> {
+  const claims: { sv: number; sid?: string } = { sv: sessionVersionFromClaim(sessionVersion) };
+  const sid = sessionIdFromClaim(sessionId);
+  if (sid) claims.sid = sid;
+  return new SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -34,7 +44,11 @@ export async function readSessionClaims(token: string): Promise<SessionClaims | 
   try {
     const { payload } = await jwtVerify(token, secretKey());
     if (typeof payload.sub !== "string" || payload.sub.length === 0) return null;
-    return { userId: payload.sub, sessionVersion: sessionVersionFromClaim(payload.sv) };
+    return {
+      userId: payload.sub,
+      sessionVersion: sessionVersionFromClaim(payload.sv),
+      sessionId: sessionIdFromClaim(payload.sid),
+    };
   } catch {
     return null;
   }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { DeviceList } from "@/components/device-list";
 import { EmailChangeForm } from "@/components/email-change-form";
 import { SignOutOthersForm } from "@/components/sign-out-others-form";
 import { EmptyState } from "@/components/empty-state";
@@ -9,7 +10,10 @@ import { RichText } from "@/components/rich-text";
 import { plural } from "@/lib/domain/format";
 import { formatDateUTC, formatRelative } from "@/lib/domain/time";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getProfile } from "@/lib/queries";
+import { readSessionClaimsFromCookie } from "@/lib/session";
+import { listSessions } from "@/lib/session-devices";
 
 type Params = { params: Promise<{ username: string }> };
 
@@ -22,6 +26,9 @@ export default async function UserPage({ params }: Params) {
   const { username } = await params;
   const viewer = await getCurrentUser();
   const profile = await getProfile(username.toLowerCase(), viewer?.id ?? null);
+  const ownProfile = Boolean(viewer && profile && viewer.id === profile.user.id);
+  const claims = ownProfile ? await readSessionClaimsFromCookie() : null;
+  const devices = ownProfile && viewer ? await listSessions(prisma, viewer.id, claims?.sessionId ?? null) : [];
   if (!profile) notFound();
 
   return (
@@ -61,7 +68,15 @@ export default async function UserPage({ params }: Params) {
               <EmailChangeForm />
             </dd>
             <dt className="text-hn-sub">sessions</dt>
-            <dd>
+            <dd className="space-y-2">
+              <DeviceList
+                devices={devices.map((device) => ({
+                  id: device.id,
+                  label: device.label,
+                  seen: formatRelative(device.lastSeenAt),
+                  current: device.current,
+                }))}
+              />
               <SignOutOthersForm />
             </dd>
           </>

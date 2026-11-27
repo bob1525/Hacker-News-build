@@ -58,6 +58,7 @@ async function main() {
   await prisma.emailVerificationToken.deleteMany();
   await prisma.passwordResetToken.deleteMany();
   await prisma.emailChangeToken.deleteMany();
+  await prisma.session.deleteMany();
   await prisma.commentVote.deleteMany();
   await prisma.postVote.deleteMany();
   await prisma.comment.updateMany({ data: { parentId: null } });

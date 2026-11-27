@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db";
 import { safeNextPath } from "@/lib/domain/url";
 import { createMailer } from "@/lib/mailer";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { clearSession, setSession } from "@/lib/session";
+import { clearSession, requestUserAgent, setSession } from "@/lib/session";
 import type { FormState } from "@/lib/types";
 import { fieldErrors, formString, loginSchema, registerSchema } from "@/lib/validators";
 
@@ -30,7 +30,7 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
     return { error: "Invalid username or password." };
   }
 
-  await setSession(user.id, user.sessionVersion);
+  await setSession(user.id, user.sessionVersion, await requestUserAgent());
   redirect(safeNextPath(formString(formData, "next")));
 }
 
@@ -64,7 +64,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
       }
       return { error: result.error };
     }
-    await setSession(result.userId);
+    await setSession(result.userId, 0, await requestUserAgent());
     nextPath = afterRegistrationPath(result.mailed, nextPath);
   } catch (error) {
     rethrowNext(error);

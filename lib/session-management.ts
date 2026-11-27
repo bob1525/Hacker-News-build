@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { revokeAllSessions } from "@/lib/session-devices";
 
 /** True when the browser that opened the link is already this user, so it should get a fresh cookie. */
 export function currentBrowserKeepsSession(viewerId: string | null | undefined, userId: string): boolean {
@@ -17,5 +18,6 @@ export async function revokeOtherSessions(
     data: { sessionVersion: { increment: 1 } },
     select: { sessionVersion: true },
   });
+  await revokeAllSessions(db, userId);
   return { ok: true, sessionVersion: user.sessionVersion };
 }

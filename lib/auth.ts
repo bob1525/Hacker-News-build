@@ -2,8 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { computeKarma } from "@/lib/domain/karma";
+import { deviceSessionDecision } from "@/lib/domain/session-device";
 import { readSessionClaimsFromCookie } from "@/lib/session";
-import { sessionVersionMatches } from "@/lib/session-token";
 
 export type CurrentUser = {
   id: string;
@@ -29,7 +29,28 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       sessionVersion: true,
     },
   });
-  if (!user || !sessionVersionMatches(claims, user.sessionVersion)) return null;
+  if (!user) return null;
+  const session = claims.sessionId
+    ? await prisma.session.findUnique({
+        where: { id: claims.sessionId },
+        select: { userId: true, revokedAt: true },
+      })
+    : null;
+  const decision = deviceSessionDecision({
+    claimsSessionId: claims.sessionId,
+    claimsVersion: claims.sessionVersion,
+    userVersion: user.sessionVersion,
+    userId: user.id,
+    session,
+  });
+  if (!decision.ok) return null;
+  if (claims.sessionId) {
+    const staleBefore = new Date(Date.now() - 60_000);
+    await prisma.session.updateMany({
+      where: { id: claims.sessionId, lastSeenAt: { lt: staleBefore } },
+      data: { lastSeenAt: new Date() },
+    });
+  }
   return {
     id: user.id,
     username: user.username,
