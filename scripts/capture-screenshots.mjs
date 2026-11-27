@@ -115,6 +115,97 @@ await page.waitForLoadState("load");
 await deletedComment.screenshot({ path: `${outDir}/comment-deleted.png` });
 console.log(`wrote ${outDir}/comment-deleted.png`);
 
+await page.getByRole("button", { name: "logout" }).click();
+await page.getByRole("link", { name: "login" }).waitFor();
+await page.goto(`${baseURL}/login`);
+await page.getByLabel("Username").fill("patio11");
+await page.getByLabel("Password").fill("news12345");
+await page.getByRole("button", { name: "login" }).click();
+await page.getByTestId("current-user").waitFor();
+await page.goto(`${baseURL}/newest`);
+await page.getByRole("link", { name: /^\d+ comments?$/ }).first().click();
+const postHeader = page.getByTestId("post-header");
+const down = postHeader.getByRole("button", { name: "Downvote" });
+await down.waitFor();
+const downResponse = page.waitForResponse((entry) => entry.request().method() === "POST");
+await down.click();
+await downResponse;
+await postHeader.getByRole("button", { name: "Remove downvote" }).waitFor();
+await shot(page, "downvote");
+const restore = page.waitForResponse((entry) => entry.request().method() === "POST");
+await postHeader.getByRole("button", { name: "Remove downvote" }).click();
+await restore;
+
+await page.getByRole("button", { name: "logout" }).click();
+await page.getByRole("link", { name: "login" }).waitFor();
+await page.goto(`${baseURL}/login`);
+await page.getByLabel("Username").fill("demo");
+await page.getByLabel("Password").fill("news12345");
+await page.getByRole("button", { name: "login" }).click();
+await page.getByTestId("current-user").waitFor();
+
+await page.goto(`${baseURL}/forgot-password`);
+await page.getByLabel("Email").waitFor();
+await shot(page, "forgot-password");
+await page.getByLabel("Email").fill("nobody@example.com");
+await page.getByRole("button", { name: "send reset link" }).click();
+await page.getByText("If that account exists, a reset link was sent.").waitFor();
+await shot(page, "forgot-password");
+
+await page.goto(`${baseURL}/reset-password?token=abcdefghijklmnopqrstuvwxyz012345`);
+await page.getByLabel("New password").waitFor();
+await shot(page, "reset-password");
+
+await page.goto(`${baseURL}/user/demo`);
+await page.getByLabel("New email").waitFor();
+await page.getByTestId("account-email").waitFor();
+await shot(page, "email-change");
+
+const depthLines = [
+  "Quartz clocks drift beside the river map.",
+  "Bicycles need oil on the chain this week.",
+  "Penguins cannot host a banquet in July.",
+  "Violet ink stained the ledger of accounts.",
+  "Hammers bounce off frozen copper pipes.",
+  "Oranges rot faster inside a linen sack.",
+  "Kites tangle above the empty stadium.",
+  "Wolves ignore the printed timetable.",
+  "Spoons conduct heat through tomato soup.",
+  "Yachts anchor far from the wheat field.",
+  "Drums echo under the concrete bridge.",
+  "Falcons circle the quiet greenhouse.",
+];
+await page.goto(`${baseURL}/newest`);
+await page.getByRole("link", { name: /^\d+ comments?$/ }).first().click();
+let depthText = depthLines[0];
+await page.getByRole("textbox", { name: "Comment" }).first().fill(depthText);
+await page.getByRole("button", { name: "add comment" }).click();
+await page.getByRole("paragraph").filter({ hasText: depthText }).waitFor();
+for (let depth = 1; depth <= 11; depth += 1) {
+  const parent = page.getByTestId("comment").filter({ hasText: depthText }).last();
+  await parent.getByRole("button", { name: "reply", exact: true }).click();
+  depthText = depthLines[depth];
+  await parent.getByRole("textbox", { name: "Comment" }).fill(depthText);
+  await parent.getByRole("button", { name: "post reply" }).click();
+  await page.getByRole("paragraph").filter({ hasText: depthText }).waitFor();
+}
+const depthMark = page.getByTestId("comment-depth-mark").filter({ hasText: "11" }).last();
+await depthMark.scrollIntoViewIfNeeded();
+await shot(page, "comment-depth");
+
+await page.getByRole("button", { name: "logout" }).click();
+await page.getByRole("link", { name: "login" }).waitFor();
+await page.goto(`${baseURL}/register`);
+const shotUser = `shot${Date.now().toString(36)}`;
+await page.getByLabel("Username").fill(shotUser);
+await page.getByLabel("Email").fill(`${shotUser}@example.com`);
+await page.getByLabel("Password").fill("supersecret");
+await page.getByRole("button", { name: "create account" }).click();
+await page.getByTestId("current-user").waitFor();
+await page.goto(`${baseURL}/verify`);
+await page.getByRole("button", { name: "Resend verification email" }).waitFor();
+await shot(page, "verify");
+
 const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
 await mobile.goto(`${baseURL}/`);
 await mobile.getByTestId("post-title").first().waitFor();

@@ -27,6 +27,15 @@ export function commentIndentStepPx(depth: number): number {
 }
 
 /**
+ * Nested rows draw a left border and padding only while the indent is still
+ * growing. Depths 11–16 already sit at the 120px cap, so another border would
+ * keep shifting them right.
+ */
+export function commentThreadGutter(depth: number): boolean {
+  return commentIndentStepPx(depth) > 0;
+}
+
+/**
  * Depths 11–16 share the 120px indent. A numeric mark tells them apart
  * without pushing the thread any wider.
  */

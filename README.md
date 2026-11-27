@@ -35,7 +35,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### 评论
 
-- 多层回复最多 16 层，可以折叠。第 16 层不再显示回复入口。缩进每层 12 像素，到 120 像素后不再变宽。第 11 到 16 层缩进都停在 120 像素，作者名前面用橙色数字标出层数，把这几层彼此分开。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户写在这个浏览器的 `localStorage`（键 `hn-collapsed-comments`），关掉标签页后再打开仍在，见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
+- 多层回复最多 16 层，可以折叠。第 16 层不再显示回复入口。缩进每层 12 像素，到 120 像素后不再变宽。第 11 到 16 层缩进都停在 120 像素，作者名前面用橙色数字标出层数。这几层不再叠加左边框和内边距，避免缩进到顶之后还往右挪。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户写在这个浏览器的 `localStorage`（键 `hn-collapsed-comments`），关掉标签页后再打开仍在，见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
 - 排序规则：先按票数降序，票数相同再按时间升序（更早的在前）。票数和时间都相同则按 id 字典序。没有票的线程因此仍是从旧到新。
 - 登录用户可以给别人的评论 upvote 或 downvote，再点一次取消。不能给自己的评论投票，也不能给已软删除的评论投票。
 - Karma 是别人投给你的帖子票和评论票之和，downvote 记为负。自己投自己的不计。帖子侧和评论侧各自低于 0 时按 0 算。取消评论票会把对应 karma 减回去。软删除不撤销已经投出的票，karma 保持原样。
@@ -229,6 +229,20 @@ npx tsx scripts/scale-bench.ts
 ![窄屏首页](docs/screenshots/home-mobile.png)
 
 评论投票、软删除、收藏、粉丝数和关注页的图放在上面对应功能旁边，文件分别是 `comment-vote.png`、`comment-deleted.png`、`profile-favorites.png`、`profile-following-count.png`、`following-page.png`。
+
+反对票、邮箱验证、密码重置和深层评论：
+
+![反对票](docs/screenshots/downvote.png)
+
+![邮箱验证](docs/screenshots/verify.png)
+
+![忘记密码](docs/screenshots/forgot-password.png)
+
+![重置密码](docs/screenshots/reset-password.png)
+
+![更换邮箱](docs/screenshots/email-change.png)
+
+![第 11 层评论](docs/screenshots/comment-depth.png)
 
 ## 目录
 

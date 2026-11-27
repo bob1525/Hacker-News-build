@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { setCommentCollapsed } from "@/lib/actions/comment-collapse";
 import { deleteComment } from "@/lib/actions/comments";
 import { COLLAPSED_COMMENTS_KEY, parseCollapsedIds, toggleCollapsedId } from "@/lib/domain/collapsed-comments";
-import { canReplyAtDepth, commentDepthMark, commentIndentStepPx } from "@/lib/domain/comments";
+import { canReplyAtDepth, commentDepthMark, commentIndentStepPx, commentThreadGutter } from "@/lib/domain/comments";
 import { plural } from "@/lib/domain/format";
 import { formatRelative } from "@/lib/domain/time";
 import type { CommentDTO } from "@/lib/types";
@@ -43,6 +43,7 @@ function CommentItem({
   const owns = viewerId === node.author.id;
   const descendants = descendantCount(node);
   const indent = commentIndentStepPx(depth);
+  const gutter = commentThreadGutter(depth);
   const depthMark = commentDepthMark(depth);
   const canReply = canReplyAtDepth(depth + 1);
 
@@ -72,7 +73,10 @@ function CommentItem({
       className="pt-2"
       style={{ marginLeft: indent }}
     >
-      <div className={depth > 0 ? "border-l border-[#e4e4dc] pl-2" : undefined}>
+      <div
+        data-comment-gutter={gutter ? "true" : "false"}
+        className={gutter ? "border-l border-[#e4e4dc] pl-2" : undefined}
+      >
         <div className="flex flex-wrap items-center gap-x-1 text-[11px] text-hn-sub">
           <button
             type="button"

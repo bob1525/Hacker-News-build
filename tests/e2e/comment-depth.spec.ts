@@ -41,8 +41,10 @@ test("marks comment depths 11 and up without indenting past 120px", async ({ pag
   const marked = page.getByTestId("comment").filter({ hasText: text }).last();
   await expect(marked.locator("> div > div").first().getByTestId("comment-depth-mark")).toHaveText("11");
   await expect(marked).toHaveCSS("margin-left", "0px");
+  await expect(marked.locator("> div").first()).toHaveAttribute("data-comment-gutter", "false");
 
   const capped = page.getByTestId("comment").filter({ hasText: lines[10]! }).last();
   await expect(capped.locator("> div > div").first().getByTestId("comment-depth-mark")).toHaveCount(0);
   await expect(capped).toHaveCSS("margin-left", "12px");
+  await expect(capped.locator("> div").first()).toHaveAttribute("data-comment-gutter", "true");
 });

@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import nodemailer from "nodemailer";
 
 export type OutboundMail = {
@@ -42,6 +43,8 @@ export type MailerEnv = {
   SMTP_USER?: string;
   SMTP_PASS?: string;
   SMTP_FROM?: string;
+  /** When set, console mail is also appended here. Unset by default. */
+  MAIL_LOG_PATH?: string;
 };
 
 const recorded: OutboundMail[] = [];
@@ -100,6 +103,10 @@ function consoleMailer(env: MailerEnv): Mailer {
   return {
     async send(mail) {
       recorded.push(mail);
+      const logPath = env.MAIL_LOG_PATH?.trim();
+      if (logPath) {
+        appendFileSync(logPath, `${mail.to}\n${mail.subject}\n${mail.text}\n---\n`);
+      }
       if (env.NODE_ENV !== "test") {
         console.info(`[mail] to=${mail.to} subject=${mail.subject}\n${mail.text}`);
       }

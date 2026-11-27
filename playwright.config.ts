@@ -28,6 +28,7 @@ export default defineConfig({
       ...process.env,
       DATABASE_URL: databaseUrl,
       AUTH_SECRET: authSecret,
+      MAIL_LOG_PATH: "/tmp/hn-e2e-mail.log",
     },
   },
 });

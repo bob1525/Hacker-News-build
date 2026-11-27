@@ -8,6 +8,7 @@ import {
   commentDepthMark,
   commentIndentPx,
   commentIndentStepPx,
+  commentThreadGutter,
   maxThreadDepth,
   replyDepthError,
 } from "@/lib/domain/comments";
@@ -62,6 +63,18 @@ describe("comment depth cap", () => {
     expect(commentIndentStepPx(16)).toBe(0);
     const total = Array.from({ length: 17 }, (_, depth) => commentIndentStepPx(depth)).reduce((sum, step) => sum + step, 0);
     expect(total).toBe(120);
+  });
+
+  it("drops the nested border once the indent stops growing", () => {
+    expect(commentThreadGutter(0)).toBe(false);
+    expect(commentThreadGutter(1)).toBe(true);
+    expect(commentThreadGutter(10)).toBe(true);
+    for (const depth of [11, 12, 13, 14, 15, 16]) {
+      expect(commentThreadGutter(depth)).toBe(false);
+      expect(commentIndentStepPx(depth)).toBe(0);
+      expect(commentDepthMark(depth)).toBe(String(depth));
+    }
+    expect(commentIndentPx(16)).toBe(120);
   });
 });
 
