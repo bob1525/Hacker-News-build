@@ -188,6 +188,14 @@ npx tsx scripts/scale-bench.ts
 - [LEFTOVER_HARDENING.md](LEFTOVER_HARDENING.md)
 - [EIGHTH_ROUND_AUDIT.md](EIGHTH_ROUND_AUDIT.md)
 
+第九轮加上可切换的 SMTP 发信、发信失败后的账号政策、限时密码重置、非 ASCII 搜索折叠，并收紧很大年龄上的热度精度和深层评论的层数标记：
+
+- [EMAIL_DELIVERY.md](EMAIL_DELIVERY.md)
+- [PASSWORD_RESET.md](PASSWORD_RESET.md)
+- [SEARCH_UNICODE.md](SEARCH_UNICODE.md)
+- [LEFTOVER_HARDENING_V2.md](LEFTOVER_HARDENING_V2.md)
+- [NINTH_ROUND_AUDIT.md](NINTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
