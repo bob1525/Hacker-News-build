@@ -75,6 +75,8 @@ push 运行 [45989388955](https://github.com/bob1525/Hacker-News-build/actions/r
 
 搜索按特征分组计数，分数只调用 `searchRelevance`。同一分数的行用原来的热度 SQL 只取本页还缺的数量。未登录折叠改到 `localStorage`。`next.config.ts` 在父进程加载时拒绝不合格的 `AUTH_SECRET`，所以 `npx next dev` 也会以 1 退出。`npm run dev` 的退出码钩子还在。
 
+这个提交的 CI 和下面的头提交是同一种失败，修在 `a38aaea`。push 运行 [45990728400](https://github.com/bob1525/Hacker-News-build/actions/runs/45990728400)，pull_request 运行 [45990737059](https://github.com/bob1525/Hacker-News-build/actions/runs/45990737059)。
+
 本地复跑，2026-11-27 11:27 UTC，提交 `5b4db6324303cb2dbecbf822c52ee869083e6673`：
 
 ```text
@@ -94,9 +96,17 @@ npm run test:e2e
 
 本文件和 README 的第八轮索引。
 
-头提交 `67eb19c2a83c7c554a5d6ae3593a11c42b6b75ee` 的 push 运行 [45990908616](https://github.com/bob1525/Hacker-News-build/actions/runs/45990908616) 失败。`redis` 成功。`test` 在 `npm run typecheck` 失败：`next typegen` 加载 `next.config.ts` 时 CI 还没有 `AUTH_SECRET`，配置里的退出把进程打成 1。`postgres` 在搜索窗口测试失败：未加引号的别名被折成小写，`titleCount` 读成空，`JSON` 里显示成 `null`。阶段 4 的 push [45990728400](https://github.com/bob1525/Hacker-News-build/actions/runs/45990728400) 是同一种失败。
+头提交 `67eb19c2a83c7c554a5d6ae3593a11c42b6b75ee` 的 push 运行 [45990908616](https://github.com/bob1525/Hacker-News-build/actions/runs/45990908616) 和 pull_request 运行 [45990918886](https://github.com/bob1525/Hacker-News-build/actions/runs/45990918886) 失败。`redis` 成功。`test` 在 `npm run typecheck` 失败：`next typegen` 加载 `next.config.ts` 时 CI 还没有 `AUTH_SECRET`，配置里的退出把进程打成 1。`postgres` 在搜索窗口测试失败：未加引号的别名被折成小写，`titleCount` 读成空，`JSON` 里显示成 `null`。阶段 4 的 push [45990728400](https://github.com/bob1525/Hacker-News-build/actions/runs/45990728400) 是同一种失败。
 
-修复：配置只在参数为 `dev` 或 `start` 时检查密钥。PostgreSQL 的分组别名加上引号，读行时大小写都能认。这两项各加 1 个测试。确认运行记在下一笔提交。
+修复在 `a38aaea`。配置只在参数为 `dev` 或 `start` 时检查密钥，`next typegen` 可以在没有密钥时跑。PostgreSQL 的分组别名加上引号，读行时大小写都能认。原有的 `next dev` 退出测试还在。这两项各加 1 个测试。本地复跑是 171 passed、1 skipped。`npx next dev` 在密钥过短时仍以 1 退出。
+
+同一提交的 push 运行 [45991505463](https://github.com/bob1525/Hacker-News-build/actions/runs/45991505463) 和 pull_request 运行 [45991511871](https://github.com/bob1525/Hacker-News-build/actions/runs/45991511871) 都是 success。
+
+| Job | push [45991505463](https://github.com/bob1525/Hacker-News-build/actions/runs/45991505463) | pull_request [45991511871](https://github.com/bob1525/Hacker-News-build/actions/runs/45991511871) |
+| --- | --- | --- |
+| `test` | success [140480198790](https://github.com/bob1525/Hacker-News-build/actions/runs/45991505463/job/140480198790) | success [140480217712](https://github.com/bob1525/Hacker-News-build/actions/runs/45991511871/job/140480217712) |
+| `postgres` | success [140480198211](https://github.com/bob1525/Hacker-News-build/actions/runs/45991505463/job/140480198211) | success [140480218007](https://github.com/bob1525/Hacker-News-build/actions/runs/45991511871/job/140480218007) |
+| `redis` | success [140480198719](https://github.com/bob1525/Hacker-News-build/actions/runs/45991505463/job/140480198719) | success [140480217965](https://github.com/bob1525/Hacker-News-build/actions/runs/45991511871/job/140480217965) |
 
 ## 原有测试
 
