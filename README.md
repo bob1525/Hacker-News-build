@@ -179,6 +179,14 @@ npx tsx scripts/scale-bench.ts
 - [PRODUCTION_DEFAULTS.md](PRODUCTION_DEFAULTS.md)
 - [SEVENTH_ROUND_AUDIT.md](SEVENTH_ROUND_AUDIT.md)
 
+第八轮加上可选的邮箱验证、反对票，把评论深度上限改成 16，并收掉搜索打分、未登录折叠和 `npx next dev` 的遗留限制：
+
+- [EMAIL_VERIFICATION.md](EMAIL_VERIFICATION.md)
+- [DOWNVOTES.md](DOWNVOTES.md)
+- [COMMENT_DEPTH.md](COMMENT_DEPTH.md)
+- [LEFTOVER_HARDENING.md](LEFTOVER_HARDENING.md)
+- [EIGHTH_ROUND_AUDIT.md](EIGHTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
