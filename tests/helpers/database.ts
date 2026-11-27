@@ -32,19 +32,9 @@ export function prepareTestDatabase(name: keyof typeof sqliteFiles): string {
     return databaseUrl;
   }
 
-  const sql = `DROP SCHEMA IF EXISTS "${name}" CASCADE;\nCREATE SCHEMA "${name}";\n`;
-  execFileSync("bash", ["scripts/with-postgres-schema.sh", "prisma", "db", "execute", "--stdin"], {
-    env: { ...process.env, DATABASE_URL: databaseUrl },
-    input: sql,
-    stdio: ["pipe", "inherit", "inherit"],
+  execFileSync("bash", ["scripts/apply-postgres-migration.sh"], {
+    env: { ...process.env, DATABASE_URL: databaseUrl, POSTGRES_SCHEMA: name },
+    stdio: "inherit",
   });
-  execFileSync(
-    "bash",
-    ["scripts/with-postgres-schema.sh", "prisma", "db", "push", "--skip-generate", "--accept-data-loss"],
-    {
-      env: { ...process.env, DATABASE_URL: databaseUrl },
-      stdio: "inherit",
-    },
-  );
   return databaseUrl;
 }

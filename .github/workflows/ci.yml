@@ -56,8 +56,8 @@ jobs:
           AUTH_SECRET: ci-auth-secret-not-for-production-use-32
 
   # Separate from `test`. The default path stays the SQLite job above.
-  # This job generates a PostgreSQL Prisma client and runs the unit tests on it.
-  # Checked-in migrations are SQLite SQL, so the push uses a temporary copy.
+  # This job applies prisma/migrations-postgres/*.sql to an empty database,
+  # checks that schema against the Prisma datamodel, then runs the unit tests.
   postgres:
     name: postgres
     runs-on: ubuntu-latest
@@ -92,8 +92,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate the PostgreSQL client and push the schema
-        run: bash scripts/push-postgres-schema.sh
+      - name: Install the PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migration SQL and check for drift
+        run: bash scripts/apply-postgres-migration.sh --generate
 
       - name: Unit tests
         run: npm test

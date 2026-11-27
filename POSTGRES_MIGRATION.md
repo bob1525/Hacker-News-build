@@ -77,7 +77,7 @@ rg -n "DATETIME|TIMESTAMP\\(3\\)|CREATE TABLE" prisma/migrations-postgres/0001_i
 rg -n 'provider = "sqlite"' prisma/schema.prisma
 ```
 
-本机没有 PostgreSQL 服务器，所以没有执行这份 SQL。阶段 2 的 CI 已经用同一份数据模型在 `postgres:16` 上 `db push` 并跑过 137 个单元测试，见 `POSTGRES_TESTS.md`。那次建表走的是 `db push`，不是这份 SQL 文件。
+本机没有 PostgreSQL 服务器，所以第六轮没有执行这份 SQL。第七轮起，CI 的 `postgres` job 会在空库上执行 `prisma/migrations-postgres/*.sql` 并做漂移检查，见 `POSTGRES_MIGRATE_APPLY.md`。
 
 ## 结果证据
 
