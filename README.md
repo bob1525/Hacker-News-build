@@ -212,6 +212,14 @@ npx tsx scripts/scale-bench.ts
 - [LEFTOVER_HARDENING_V4.md](LEFTOVER_HARDENING_V4.md)
 - [ELEVENTH_ROUND_AUDIT.md](ELEVENTH_ROUND_AUDIT.md)
 
+第十二轮可以单独退出一台设备，补上 `ΐ` / `ΰ` 等搜索全折叠，登录后把本机折叠合并进账号，并让生产环境的 console 标准输出也不写令牌：
+
+- [SESSION_DEVICES.md](SESSION_DEVICES.md)
+- [SEARCH_FOLD_V3.md](SEARCH_FOLD_V3.md)
+- [COLLAPSE_SYNC.md](COLLAPSE_SYNC.md)
+- [LEFTOVER_HARDENING_V5.md](LEFTOVER_HARDENING_V5.md)
+- [TWELFTH_ROUND_AUDIT.md](TWELFTH_ROUND_AUDIT.md)
+
 ## 截图
 
 服务跑起来之后，可以用 `node scripts/capture-screenshots.mjs` 重新生成这些图。
