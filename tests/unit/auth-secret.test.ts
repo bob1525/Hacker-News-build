@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { assertAuthSecret, authSecretProblem, enforceAuthSecretOrExit, MIN_AUTH_SECRET_LENGTH } from "@/lib/auth-secret";
+import {
+  assertAuthSecret,
+  authSecretCheckedForArgv,
+  authSecretProblem,
+  enforceAuthSecretOrExit,
+  MIN_AUTH_SECRET_LENGTH,
+} from "@/lib/auth-secret";
 import { signSession } from "@/lib/session-token";
 
 const VALID = "unit-test-secret-key-not-for-production";
@@ -53,6 +59,13 @@ describe("AUTH_SECRET startup checks", () => {
     expect(() => enforceAuthSecretOrExit("CHANGE_ME_TO_A_LONG_RANDOM_STRING", exit, write)).toThrow("exit:1");
     expect(write).toHaveBeenCalledWith(expect.stringMatching(/placeholder/i));
     expect(exit).toHaveBeenCalledWith(1);
+  });
+
+  it("checks the secret for dev and start, not for typegen", () => {
+    expect(authSecretCheckedForArgv(["node", "next", "dev", "--port", "3218"])).toBe(true);
+    expect(authSecretCheckedForArgv(["node", "next", "start"])).toBe(true);
+    expect(authSecretCheckedForArgv(["node", "next", "typegen"])).toBe(false);
+    expect(authSecretCheckedForArgv(["node", "next", "build"])).toBe(false);
   });
 
   it("does not exit when the secret is usable", () => {

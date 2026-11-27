@@ -22,8 +22,24 @@ type GroupRow = {
   total: number | bigint;
 };
 
-function flag(value: number | bigint): boolean {
-  return Number(value) === 1;
+function column(row: Record<string, unknown>, name: string): number {
+  const value = row[name] ?? row[name.toLowerCase()];
+  const numeric = typeof value === "bigint" ? Number(value) : Number(value);
+  if (!Number.isFinite(numeric)) {
+    throw new Error(`Search group column ${name} was missing.`);
+  }
+  return numeric;
+}
+
+/** Postgres folds unquoted aliases. Quoted aliases stay mixed-case; accept either. */
+export function readSearchGroup(row: Record<string, unknown>): SearchFeatures {
+  return {
+    exact: column(row, "exactMatch") === 1,
+    titlePhrase: column(row, "titlePhrase") === 1,
+    textPhrase: column(row, "textPhrase") === 1,
+    titleCount: column(row, "titleCount"),
+    textCount: column(row, "textCount"),
+  };
 }
 
 /**
@@ -55,14 +71,8 @@ export async function loadSearchWindow(
   const rows = await db.$queryRawUnsafe<GroupRow[]>(grouped.sql, ...grouped.params);
   const groups = rows
     .map((row) => ({
-      features: {
-        exact: flag(row.exactMatch),
-        titlePhrase: flag(row.titlePhrase),
-        textPhrase: flag(row.textPhrase),
-        titleCount: Number(row.titleCount),
-        textCount: Number(row.textCount),
-      } satisfies SearchFeatures,
-      total: Number(row.total),
+      features: readSearchGroup(row as unknown as Record<string, unknown>),
+      total: column(row as unknown as Record<string, unknown>, "total"),
     }))
     .filter((group) => group.total > 0)
     .map((group) => ({ ...group, score: relevanceFromFeatures(group.features, options.query) }))

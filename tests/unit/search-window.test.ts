@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pageSearchResults, searchRelevance } from "@/lib/domain/search";
+import { searchGroupStatement } from "@/lib/domain/search-sql";
 import { relevanceFromFeatures, searchFeatures, searchWindow, type SearchHit } from "@/lib/domain/search-window";
-import { loadSearchWindow } from "@/lib/search-window-db";
+import { loadSearchWindow, readSearchGroup } from "@/lib/search-window-db";
 import { prepareTestDatabase } from "@/tests/helpers/database";
 
 const now = new Date("2026-11-27T12:00:00.000Z");
@@ -45,6 +46,24 @@ describe("search window", () => {
         expect(relevanceFromFeatures(features, "needle wal")).toBe(searchRelevance({ title, text }, "needle wal"));
       }
     }
+  });
+});
+
+describe("search group columns", () => {
+  it("keeps Postgres aliases quoted and reads folded names", () => {
+    const sql = searchGroupStatement(["needle"], "postgresql").sql;
+    expect(sql).toContain('AS "titleCount"');
+    expect(sql).toContain('AS "exactMatch"');
+    expect(readSearchGroup({ exactmatch: 0, titlephrase: 0, textphrase: 1, titlecount: 0, textcount: 1 })).toEqual({
+      exact: false,
+      titlePhrase: false,
+      textPhrase: true,
+      titleCount: 0,
+      textCount: 1,
+    });
+    expect(relevanceFromFeatures({ exact: false, titlePhrase: false, textPhrase: true, titleCount: 0, textCount: 1 }, "needle")).toBe(
+      searchRelevance({ title: "§", text: "needle" }, "needle"),
+    );
   });
 });
 

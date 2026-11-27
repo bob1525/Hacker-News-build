@@ -6,7 +6,7 @@
 
 未登录用户的折叠从 `sessionStorage` 改到 `localStorage`，键名仍是 `hn-collapsed-comments`。关掉标签页再打开还在，仍然只在这一个浏览器里。已登录用户继续写 `CommentCollapse`，不读这份本地存储。`collapseStorage(null)` 从 `"session"` 改成 `"local"`，对应的断言一起改了。
 
-`npx next dev` 会先在父进程加载 `next.config.ts`。配置文件在加载时调用 `enforceAuthSecretOrExit`。密钥不合格就在 fork 工作进程之前 `process.exit(1)`。`npm run dev` 原来的 `scripts/next-dev-exit.cjs` 还在，两条路径都测了。`next build` 和 `next start` 也会加载这份配置，不合格密钥同样起不来。
+`npx next dev` 会先在父进程加载 `next.config.ts`。只有参数里是 `dev` 或 `start` 时才调用 `enforceAuthSecretOrExit`。密钥不合格就在 fork 工作进程之前 `process.exit(1)`。`npm run dev` 原来的 `scripts/next-dev-exit.cjs` 还在。`next typegen`（`npm run typecheck`）不退出，否则 CI 在没有 `AUTH_SECRET` 的类型检查步骤会失败。
 
 默认数据库仍是 SQLite，默认限流仍是内存。没有改历史提交。
 

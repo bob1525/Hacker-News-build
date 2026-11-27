@@ -59,7 +59,8 @@ export function searchGroupStatement(
   const where = [wordWhere, ...filters].join(" AND ");
   const table = dialect === "postgresql" ? '"Post"' : "Post";
   const total = dialect === "postgresql" ? "COUNT(*)::int" : "COUNT(*)";
-  const sql = `SELECT ${exact} AS exactMatch, ${titlePhrase} AS titlePhrase, ${textPhrase} AS textPhrase, (${titleCount}) AS titleCount, (${textCount}) AS textCount, ${total} AS total FROM ${table} WHERE ${where} GROUP BY 1, 2, 3, 4, 5`;
+  const alias = (name: string) => (dialect === "postgresql" ? `"${name}"` : name);
+  const sql = `SELECT ${exact} AS ${alias("exactMatch")}, ${titlePhrase} AS ${alias("titlePhrase")}, ${textPhrase} AS ${alias("textPhrase")}, (${titleCount}) AS ${alias("titleCount")}, (${textCount}) AS ${alias("textCount")}, ${total} AS ${alias("total")} FROM ${table} WHERE ${where} GROUP BY 1, 2, 3, 4, 5`;
   return { sql, params };
 }
 

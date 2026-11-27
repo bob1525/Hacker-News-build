@@ -22,6 +22,11 @@ export function assertAuthSecret(value: string | undefined | null): asserts valu
   if (problem) throw new Error(problem);
 }
 
+/** `next dev` and `next start` load this config in the parent. `next typegen` must not exit. */
+export function authSecretCheckedForArgv(argv: readonly string[]): boolean {
+  return argv.some((arg) => arg === "dev" || arg === "start");
+}
+
 export function enforceAuthSecretOrExit(
   value: string | undefined | null = process.env.AUTH_SECRET,
   exit: (code: number) => never = process.exit,

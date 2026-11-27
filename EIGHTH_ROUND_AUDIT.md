@@ -92,7 +92,11 @@ npm run test:e2e
 
 ### 阶段 5
 
-本文件和 README 的第八轮索引。没有新增测试。包含阶段 4 代码的推送会被本提交取代。头提交的 `test`、`postgres`、`redis` 结果记在下一笔只改本文件的提交里。
+本文件和 README 的第八轮索引。
+
+头提交 `67eb19c2a83c7c554a5d6ae3593a11c42b6b75ee` 的 push 运行 [45990908616](https://github.com/bob1525/Hacker-News-build/actions/runs/45990908616) 失败。`redis` 成功。`test` 在 `npm run typecheck` 失败：`next typegen` 加载 `next.config.ts` 时 CI 还没有 `AUTH_SECRET`，配置里的退出把进程打成 1。`postgres` 在搜索窗口测试失败：未加引号的别名被折成小写，`titleCount` 读成空，`JSON` 里显示成 `null`。阶段 4 的 push [45990728400](https://github.com/bob1525/Hacker-News-build/actions/runs/45990728400) 是同一种失败。
+
+修复：配置只在参数为 `dev` 或 `start` 时检查密钥。PostgreSQL 的分组别名加上引号，读行时大小写都能认。这两项各加 1 个测试。确认运行记在下一笔提交。
 
 ## 原有测试
 
@@ -111,5 +115,6 @@ npm run test:e2e
 - 反对票可以把显示点数打成负数，但热榜把 0 分以下当成 0 分。业力每一侧先压到 0，不会出现负业力。新账号在别人赞成之前不能反对。
 - 评论第 10 层以后缩进不再变宽。数据上限仍是 16。
 - 搜索的分组扫描仍在数据库里读命中行。进程只给当前结果窗口打分。很深的一页最多打分到那一页为止的行。SQL 的 `lower` 和 JavaScript 的 `toLowerCase` 在非 ASCII 上仍可能不一致。
+- `next typegen` 不检查 `AUTH_SECRET`。`next dev` 和 `next start` 会检查。
 - 未登录折叠在这个浏览器的 `localStorage`。清站点数据或换浏览器会丢。
 - SQLite 热度 SQL 的牛顿迭代，在 `ageHours + 2` 远大于 100000 时误差会变大。
