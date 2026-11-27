@@ -12,7 +12,7 @@
 | 2 退出其他设备 | [SESSION_MANAGEMENT.md](SESSION_MANAGEMENT.md) | `2f13c6ab6830db79b2a2ea1cf3dab71db4e089de` | 4 个单元 |
 | 3 搜索全折叠 | [SEARCH_CASEFOLD.md](SEARCH_CASEFOLD.md) | `7162ddc33f652850d2d42cf62093ba3773850705` | 2 个单元 |
 | 4 遗留限制 | [LEFTOVER_HARDENING_V4.md](LEFTOVER_HARDENING_V4.md) | `be46a7af8d708e1828574df4d763e802bbfe5b17` | 3 个单元、2 个端到端 |
-| 5 本审计 | [ELEVENTH_ROUND_AUDIT.md](ELEVENTH_ROUND_AUDIT.md) | 本文件 | 0 |
+| 5 本审计 | [ELEVENTH_ROUND_AUDIT.md](ELEVENTH_ROUND_AUDIT.md) | `744a2915b690ba7a4461871977e0b7f68009ebf2` | 0 |
 
 阶段 1：申请更换邮箱时，确认信仍只发给新地址。送出之后给旧地址一封「Email change requested」。确认成功后再给旧地址一封「Your email was changed」。两封都不含令牌，也不含 `/change-email`。通知发不出去不挡住主流程。确认信发不出去时删掉这一次的令牌哈希。没有新迁移。
 
@@ -22,7 +22,7 @@
 
 阶段 4：`NODE_ENV=production` 时 `MAIL_LOG_PATH` 只记收件人、主题和 `[body omitted]`。非生产环境仍写全文，默认不设置这个路径。搜索深分页按页走完，和整表 `pageSearchResults` 一致，没有重复或遗漏，因此没有改打分。端到端覆盖退出其他设备和旧地址通知。截图 `docs/screenshots/sign-out-others.png`。
 
-阶段 5：本文件，加上 README 里第十一轮五份文档的索引。没有新增测试。审计头自己的 CI 不在这一笔里；全绿之后另有一笔只把那次结果写进来。
+阶段 5：本文件，加上 README 里第十一轮五份文档的索引。没有新增测试。审计正文在 `744a2915b690ba7a4461871977e0b7f68009ebf2`。这一笔只补上该提交的 CI，没有改测试。
 
 ## 怎么验证
 
@@ -74,6 +74,14 @@ pull_request 运行 [46045613935](https://github.com/bob1525/Hacker-News-build/a
 | `test` [140663999249](https://github.com/bob1525/Hacker-News-build/actions/runs/46045613935/job/140663999249) | success |
 | `postgres` [140663999174](https://github.com/bob1525/Hacker-News-build/actions/runs/46045613935/job/140663999174) | success |
 | `redis` [140663998716](https://github.com/bob1525/Hacker-News-build/actions/runs/46045613935/job/140663998716) | success |
+
+审计提交 `744a2915b690ba7a4461871977e0b7f68009ebf2` 只改了 README 索引和本文件。它的 push 运行 [46046258589](https://github.com/bob1525/Hacker-News-build/actions/runs/46046258589) 和 pull_request 运行 [46046268554](https://github.com/bob1525/Hacker-News-build/actions/runs/46046268554) 结论都是 success：
+
+| job | push | pull_request |
+| --- | --- | --- |
+| `test` | success [140666155328](https://github.com/bob1525/Hacker-News-build/actions/runs/46046258589/job/140666155328) | success [140666187651](https://github.com/bob1525/Hacker-News-build/actions/runs/46046268554/job/140666187651) |
+| `postgres` | success [140666155656](https://github.com/bob1525/Hacker-News-build/actions/runs/46046258589/job/140666155656) | success [140666187426](https://github.com/bob1525/Hacker-News-build/actions/runs/46046268554/job/140666187426) |
+| `redis` | success [140666155953](https://github.com/bob1525/Hacker-News-build/actions/runs/46046258589/job/140666155953) | success [140666187744](https://github.com/bob1525/Hacker-News-build/actions/runs/46046268554/job/140666187744) |
 
 ## 证据
 
@@ -127,5 +135,6 @@ npm run test:e2e
 - `next typegen` 不检查 `AUTH_SECRET`。`next dev` 和 `next start` 会检查。
 - 未登录折叠在这个浏览器的 `localStorage`。清站点数据或换浏览器会丢。
 - Prisma 的 SQLite `DateTime` 写不进大约公元 886 年以前，热度 SQL 因此到不了 `1e8` 小时以上的真实 `createdAt`。更大的年龄用同一段牛顿迭代在查询里比较，40 步在 `x = 1e12` 以内与 `x ** 1.8` 的相对误差小于 `1e-9`。
+- 审计头 `744a291` 的 `test`、`postgres`、`redis` 已经成功。这一笔只把那次结果写进本文件，不再为记录提交本身另开一轮。
 
 本轮在阶段 5 结束。
