@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { emailVerificationBlock } from "@/lib/domain/email-verification";
 import { guardRateLimit } from "@/lib/limits";
 import { applyCommentVote, applyPostVote } from "@/lib/voting";
 import { getCurrentUser } from "@/lib/auth";
@@ -21,6 +22,8 @@ function refreshPost(postId: string, authorUsername: string) {
 export async function votePost(postId: string): Promise<ActionResult<{ voted: boolean; points: number }>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Log in to vote." };
+  const unverified = emailVerificationBlock(user);
+  if (unverified) return { ok: false, error: unverified };
 
   const limited = await guardRateLimit("vote", user.id);
   if (!limited.ok) return { ok: false, error: limited.error };
@@ -45,6 +48,8 @@ export async function votePost(postId: string): Promise<ActionResult<{ voted: bo
 export async function voteComment(commentId: string): Promise<ActionResult<{ voted: boolean; points: number }>> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Log in to vote." };
+  const unverified = emailVerificationBlock(user);
+  if (unverified) return { ok: false, error: unverified };
 
   const limited = await guardRateLimit("vote", user.id);
   if (!limited.ok) return { ok: false, error: limited.error };

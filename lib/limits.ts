@@ -6,6 +6,8 @@ import {
   POST_DUPLICATE_WINDOW_MS,
   POST_RATE_LIMIT,
   POST_RATE_WINDOW_MS,
+  VERIFY_EMAIL_RATE_LIMIT,
+  VERIFY_EMAIL_RATE_WINDOW_MS,
   VOTE_RATE_LIMIT,
   VOTE_RATE_WINDOW_MS,
 } from "@/lib/config";
@@ -24,6 +26,7 @@ export const RATE_RULES = {
   post: { limit: POST_RATE_LIMIT, windowMs: POST_RATE_WINDOW_MS },
   comment: { limit: COMMENT_RATE_LIMIT, windowMs: COMMENT_RATE_WINDOW_MS },
   vote: { limit: VOTE_RATE_LIMIT, windowMs: VOTE_RATE_WINDOW_MS },
+  verify: { limit: VERIFY_EMAIL_RATE_LIMIT, windowMs: VERIFY_EMAIL_RATE_WINDOW_MS },
 } as const;
 
 export { POST_DUPLICATE_WINDOW_MS, COMMENT_DUPLICATE_WINDOW_MS };

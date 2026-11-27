@@ -9,6 +9,10 @@ export const COMMENT_RATE_LIMIT = 20;
 export const COMMENT_RATE_WINDOW_MS = 10 * 60 * 1000;
 export const VOTE_RATE_LIMIT = 60;
 export const VOTE_RATE_WINDOW_MS = 60 * 1000;
+export const VERIFY_EMAIL_RATE_LIMIT = 3;
+export const VERIFY_EMAIL_RATE_WINDOW_MS = 10 * 60 * 1000;
+/** Verification links stop working after this long. */
+export const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const POST_DUPLICATE_WINDOW_MS = 60 * 60 * 1000;
 export const COMMENT_DUPLICATE_WINDOW_MS = 10 * 60 * 1000;

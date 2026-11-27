@@ -54,6 +54,7 @@ async function main() {
   assertSeedIntegrity();
   assertSeedRanking(new Date());
 
+  await prisma.emailVerificationToken.deleteMany();
   await prisma.commentVote.deleteMany();
   await prisma.postVote.deleteMany();
   await prisma.comment.updateMany({ data: { parentId: null } });
@@ -67,7 +68,7 @@ async function main() {
 
   for (const user of namedUsers) {
     await prisma.user.create({
-      data: { ...user, passwordHash },
+      data: { ...user, passwordHash, emailVerifiedAt: new Date(now) },
     });
   }
 
@@ -79,6 +80,7 @@ async function main() {
         email: `${username}@example.com`,
         about: "Mostly lurking, occasionally voting.",
         passwordHash,
+        emailVerifiedAt: new Date(now),
       },
     });
   }

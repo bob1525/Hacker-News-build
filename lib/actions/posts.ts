@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { POST_DUPLICATE_WINDOW_MS } from "@/lib/config";
+import { emailVerificationBlock } from "@/lib/domain/email-verification";
 import { hasRecentDuplicate } from "@/lib/domain/duplicate";
 import { guardRateLimit } from "@/lib/limits";
 import { getCurrentUser } from "@/lib/auth";
@@ -21,6 +22,8 @@ function refreshFeeds() {
 export async function createPost(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return { error: "Log in to submit a post." };
+  const unverified = emailVerificationBlock(user);
+  if (unverified) return { error: unverified };
 
   const parsed = postSchema.safeParse({
     title: formString(formData, "title"),

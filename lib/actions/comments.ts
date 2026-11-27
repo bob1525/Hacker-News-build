@@ -3,6 +3,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { COMMENT_DUPLICATE_WINDOW_MS, MAX_COMMENT_DEPTH } from "@/lib/config";
 import { canDeleteComment, canEditComment } from "@/lib/domain/comment-moderation";
+import { emailVerificationBlock } from "@/lib/domain/email-verification";
 import { hasRecentDuplicate } from "@/lib/domain/duplicate";
 import { guardRateLimit } from "@/lib/limits";
 import { getCurrentUser } from "@/lib/auth";
@@ -34,6 +35,8 @@ async function commentDepth(id: string): Promise<number> {
 export async function createComment(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await getCurrentUser();
   if (!user) return { error: "Log in to comment." };
+  const unverified = emailVerificationBlock(user);
+  if (unverified) return { error: unverified };
 
   const parsed = commentSchema.safeParse({
     postId: formString(formData, "postId"),

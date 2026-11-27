@@ -4,7 +4,9 @@ import { Prisma } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { issueEmailVerification } from "@/lib/email-verification-store";
 import { safeNextPath } from "@/lib/domain/url";
+import { createMailer } from "@/lib/mailer";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { clearSession, setSession } from "@/lib/session";
 import type { FormState } from "@/lib/types";
@@ -53,6 +55,12 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
         about: "",
       },
     });
+    try {
+      const baseUrl = process.env.APP_BASE_URL?.trim() || "http://localhost:3000";
+      await issueEmailVerification(prisma, createMailer(), user, new Date(), baseUrl);
+    } catch (mailError) {
+      rethrowNext(mailError);
+    }
     await setSession(user.id);
   } catch (error) {
     rethrowNext(error);

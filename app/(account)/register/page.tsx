@@ -16,7 +16,9 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
     <section className="px-2 py-3">
       <h1 className="text-[14px]">Create account</h1>
       <p className="mt-1 max-w-md text-[12px] text-hn-sub">
-        Usernames are public. Passwords need at least 8 characters. Already registered?{" "}
+        Usernames are public. Passwords need at least 8 characters. A verification link is sent to your email.
+        Posting stays open until <span className="font-mono">REQUIRE_EMAIL_VERIFICATION</span> is turned on. Already
+        registered?{" "}
         <a className="underline" href={`/login?next=${encodeURIComponent(nextPath)}`}>
           Log in
         </a>

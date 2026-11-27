@@ -11,10 +11,11 @@ model User {
   id           String        @id @default(cuid())
   username     String        @unique
   email        String        @unique
-  passwordHash String
-  about        String        @default("")
-  createdAt    DateTime      @default(now())
-  posts        Post[]
+  passwordHash    String
+  about           String        @default("")
+  emailVerifiedAt DateTime?
+  createdAt       DateTime      @default(now())
+  posts           Post[]
   comments     Comment[]
   postVotes    PostVote[]
   commentVotes CommentVote[]
@@ -22,6 +23,19 @@ model User {
   following    Follow[]      @relation("UserFollows")
   followers    Follow[]      @relation("UserFollowers")
   collapses    CommentCollapse[]
+  emailTokens  EmailVerificationToken[]
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Post {

@@ -9,6 +9,7 @@ export type CurrentUser = {
   username: string;
   email: string;
   about: string;
+  emailVerifiedAt: Date | null;
   createdAt: Date;
 };
 
@@ -22,6 +23,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       username: true,
       email: true,
       about: true,
+      emailVerifiedAt: true,
       createdAt: true,
     },
   });
