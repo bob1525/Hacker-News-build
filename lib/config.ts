@@ -9,6 +9,8 @@ export const COMMENT_RATE_LIMIT = 20;
 export const COMMENT_RATE_WINDOW_MS = 10 * 60 * 1000;
 export const VOTE_RATE_LIMIT = 60;
 export const VOTE_RATE_WINDOW_MS = 60 * 1000;
+/** Karma from other people required before a downvote. Upvotes have no karma floor. */
+export const DOWNVOTE_MIN_KARMA = 1;
 export const VERIFY_EMAIL_RATE_LIMIT = 3;
 export const VERIFY_EMAIL_RATE_WINDOW_MS = 10 * 60 * 1000;
 /** Verification links stop working after this long. */

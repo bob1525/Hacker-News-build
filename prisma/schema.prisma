@@ -100,6 +100,7 @@ model Follow {
 model PostVote {
   userId    String
   postId    String
+  value     Int      @default(1)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -123,6 +124,7 @@ model CommentCollapse {
 model CommentVote {
   userId    String
   commentId String
+  value     Int      @default(1)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)

@@ -30,19 +30,21 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 });
 
 export async function getKarma(userId: string): Promise<number> {
-  const [postUpvotes, commentUpvotes] = await Promise.all([
-    prisma.postVote.count({
+  const [postVotes, commentVotes] = await Promise.all([
+    prisma.postVote.aggregate({
       where: {
         post: { authorId: userId },
         userId: { not: userId },
       },
+      _sum: { value: true },
     }),
-    prisma.commentVote.count({
+    prisma.commentVote.aggregate({
       where: {
         comment: { authorId: userId },
         userId: { not: userId },
       },
+      _sum: { value: true },
     }),
   ]);
-  return computeKarma(postUpvotes, commentUpvotes);
+  return computeKarma(postVotes._sum.value ?? 0, commentVotes._sum.value ?? 0);
 }

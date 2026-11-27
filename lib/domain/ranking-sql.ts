@@ -51,7 +51,7 @@ export async function pageHotPostIds(
   const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
     `
     WITH grouped AS (
-      SELECT p.id AS id, p.createdAt AS createdAt, COUNT(v.userId) AS points
+      SELECT p.id AS id, p.createdAt AS createdAt, MAX(COALESCE(SUM(v.value), 0), 0) AS points
       FROM Post p
       LEFT JOIN PostVote v ON v.postId = p.id
       WHERE ${where.sql}
@@ -186,7 +186,7 @@ async function pageHotPostIdsPostgres(
   const rows = await db.$queryRawUnsafe<Array<{ id: string }>>(
     `
     WITH grouped AS (
-      SELECT p."id" AS id, p."createdAt" AS "createdAt", COUNT(v."userId")::int AS points
+      SELECT p."id" AS id, p."createdAt" AS "createdAt", GREATEST(COALESCE(SUM(v."value"), 0), 0)::int AS points
       FROM "Post" p
       LEFT JOIN "PostVote" v ON v."postId" = p."id"
       WHERE ${where.sql}

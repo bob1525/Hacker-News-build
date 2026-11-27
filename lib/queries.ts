@@ -25,6 +25,7 @@ type PostRecord = {
   points: number;
   commentCount: number;
   voted: boolean;
+  downvoted: boolean;
   favorited: boolean;
 };
 
@@ -34,7 +35,7 @@ const postInclude = (viewerId: string | null) =>
     _count: { select: { votes: true, comments: true } },
     votes: {
       where: { userId: viewerId ?? "" },
-      select: { userId: true },
+      select: { value: true },
     },
     favorites: {
       where: { userId: viewerId ?? "" },
@@ -44,7 +45,35 @@ const postInclude = (viewerId: string | null) =>
 
 type PostRow = Prisma.PostGetPayload<{ include: ReturnType<typeof postInclude> }>;
 
-function toRecord(row: PostRow): PostRecord {
+function voteFlags(votes: Array<{ value: number }>): { voted: boolean; downvoted: boolean } {
+  return {
+    voted: votes.some((vote) => vote.value > 0),
+    downvoted: votes.some((vote) => vote.value < 0),
+  };
+}
+
+async function postPointMap(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const grouped = await prisma.postVote.groupBy({
+    by: ["postId"],
+    where: { postId: { in: ids } },
+    _sum: { value: true },
+  });
+  return new Map(grouped.map((row) => [row.postId, row._sum.value ?? 0]));
+}
+
+async function commentPointMap(ids: string[]): Promise<Map<string, number>> {
+  if (ids.length === 0) return new Map();
+  const grouped = await prisma.commentVote.groupBy({
+    by: ["commentId"],
+    where: { commentId: { in: ids } },
+    _sum: { value: true },
+  });
+  return new Map(grouped.map((row) => [row.commentId, row._sum.value ?? 0]));
+}
+
+function toRecord(row: PostRow, points = 0): PostRecord {
+  const flags = voteFlags(row.votes);
   return {
     id: row.id,
     title: row.title,
@@ -52,11 +81,17 @@ function toRecord(row: PostRow): PostRecord {
     text: row.text,
     createdAt: row.createdAt,
     author: row.author,
-    points: row._count.votes,
+    points,
     commentCount: row._count.comments,
-    voted: row.votes.length > 0,
+    voted: flags.voted,
+    downvoted: flags.downvoted,
     favorited: row.favorites.length > 0,
   };
+}
+
+async function cardsWithPoints(rows: PostRow[]): Promise<PostCard[]> {
+  const points = await postPointMap(rows.map((row) => row.id));
+  return rows.map((row) => toCard(toRecord(row, points.get(row.id) ?? 0)));
 }
 
 function toCard(record: PostRecord): PostCard {
@@ -109,15 +144,15 @@ export async function getFeed(options: {
         title: true,
         text: true,
         createdAt: true,
-        _count: { select: { votes: true } },
       },
     });
+    const candidatePoints = await postPointMap(candidates.map((row) => row.id));
     const ranked = pageSearchResults(
       candidates.map((row) => ({
         id: row.id,
         title: row.title,
         text: row.text,
-        points: row._count.votes,
+        points: candidatePoints.get(row.id) ?? 0,
         createdAt: row.createdAt,
       })),
       query,
@@ -133,10 +168,11 @@ export async function getFeed(options: {
       include: postInclude(viewerId),
     });
     const byId = new Map(pageRows.map((row) => [row.id, row]));
+    const pagePoints = await postPointMap(ranked.items.map((item) => item.id));
     const items = ranked.items.map((item) => {
       const row = byId.get(item.id);
       if (!row) throw new Error(`Search result ${item.id} was not loaded.`);
-      return toCard(toRecord(row));
+      return toCard(toRecord(row, pagePoints.get(item.id) ?? 0));
     });
     return {
       items,
@@ -170,10 +206,11 @@ export async function getFeed(options: {
       include: postInclude(viewerId),
     });
     const byId = new Map(rankedRows.map((row) => [row.id, row]));
+    const rankedPoints = await postPointMap(ranked.ids);
     const items = ranked.ids.map((id) => {
       const row = byId.get(id);
       if (!row) throw new Error(`Ranked post ${id} was not loaded.`);
-      return toCard(toRecord(row));
+      return toCard(toRecord(row, rankedPoints.get(id) ?? 0));
     });
     return {
       items,
@@ -188,7 +225,8 @@ export async function getFeed(options: {
     include: postInclude(viewerId),
   });
 
-  const records = rows.map(toRecord);
+  const memoryPoints = await postPointMap(rows.map((row) => row.id));
+  const records = rows.map((row) => toRecord(row, memoryPoints.get(row.id) ?? 0));
   const sorted = options.sort === "newest" ? sortByNewest(records) : sortByHot(records, now);
 
   const paged = paginate(sorted, page, PAGE_SIZE);
@@ -212,6 +250,7 @@ type CommentSource = {
   author: { id: string; username: string };
   points: number;
   voted: boolean;
+  downvoted: boolean;
 };
 
 function serializeComments(nodes: ThreadNode<CommentSource>[]): CommentDTO[] {
@@ -227,6 +266,7 @@ function serializeComments(nodes: ThreadNode<CommentSource>[]): CommentDTO[] {
     author: node.author,
     points: node.points,
     voted: node.voted,
+    downvoted: node.downvoted,
     replies: serializeComments(node.replies),
   }));
 }
@@ -245,13 +285,14 @@ export async function getPostDetail(id: string, viewerId: string | null) {
       _count: { select: { votes: true } },
       votes: {
         where: { userId: viewerId ?? "" },
-        select: { userId: true },
+        select: { value: true },
       },
     },
     orderBy: { createdAt: "asc" },
   });
 
   const now = new Date();
+  const commentPoints = await commentPointMap(comments.map((comment) => comment.id));
   const tree = buildCommentTree(
     comments.map((comment) => ({
       id: comment.id,
@@ -273,13 +314,14 @@ export async function getPostDetail(id: string, viewerId: string | null) {
         deletedAt: comment.deletedAt,
       }),
       author: comment.author,
-      points: comment._count.votes,
-      voted: comment.votes.length > 0,
+      points: commentPoints.get(comment.id) ?? 0,
+      ...voteFlags(comment.votes),
     })),
   );
 
+  const detailPoints = await postPointMap([row.id]);
   return {
-    post: toCard(toRecord(row)),
+    post: toCard(toRecord(row, detailPoints.get(row.id) ?? 0)),
     comments: serializeComments(tree),
   };
 }
@@ -324,11 +366,12 @@ export async function getProfile(username: string, viewerId: string | null) {
     }),
   ]);
 
+  const profilePoints = await commentPointMap(comments.map((comment) => comment.id));
   const profileComments: ProfileComment[] = comments.map((comment) => ({
     id: comment.id,
     text: commentDisplayText(comment.text, comment.deletedAt),
     createdAt: comment.createdAt.toISOString(),
-    points: comment._count.votes,
+    points: profilePoints.get(comment.id) ?? 0,
     post: comment.post,
   }));
 
@@ -344,9 +387,9 @@ export async function getProfile(username: string, viewerId: string | null) {
     followerCount,
     followingCount,
     viewerFollows: Boolean(viewerFollow),
-    posts: posts.map((post) => toCard(toRecord(post))),
+    posts: await cardsWithPoints(posts),
     comments: profileComments,
-    favorites: favorites.map((favorite) => toCard(toRecord(favorite.post))),
+    favorites: await cardsWithPoints(favorites.map((favorite) => favorite.post)),
   };
 }
 
@@ -361,11 +404,12 @@ export async function getRecentComments(): Promise<RecentComment[]> {
     },
   });
 
+  const recentPoints = await commentPointMap(comments.map((comment) => comment.id));
   return comments.map((comment) => ({
     id: comment.id,
     text: commentDisplayText(comment.text, comment.deletedAt),
     createdAt: comment.createdAt.toISOString(),
-    points: comment._count.votes,
+    points: recentPoints.get(comment.id) ?? 0,
     post: comment.post,
     author: comment.author,
   }));

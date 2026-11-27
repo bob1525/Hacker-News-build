@@ -35,6 +35,7 @@ function CommentItem({
   const [editing, setEditing] = useState(false);
   const [points, setPoints] = useState(node.points);
   const [voted, setVoted] = useState(node.voted);
+  const [downvoted, setDownvoted] = useState(node.downvoted);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const collapsed = collapsedIds.includes(node.id);
@@ -45,7 +46,8 @@ function CommentItem({
   useEffect(() => {
     setPoints(node.points);
     setVoted(node.voted);
-  }, [node.id, node.points, node.voted]);
+    setDownvoted(node.downvoted);
+  }, [node.id, node.points, node.voted, node.downvoted]);
 
   async function remove() {
     setError(null);
@@ -86,21 +88,43 @@ function CommentItem({
           <span aria-hidden="true">|</span>
           <span data-testid="comment-points">{plural(points, "point")}</span>
           {node.deleted ? null : (
-            <VoteButton
-              kind="comment"
-              id={node.id}
-              voted={voted}
-              points={points}
-              canVote={Boolean(viewerId) && !owns}
-              owns={owns}
-              loginHref={`/login?next=${encodeURIComponent(`/item/${postId}`)}`}
-              variant="inline"
-              onChange={(next) => {
-                setVoted(next.voted);
-                setPoints(next.points);
-              }}
-              onError={setError}
-            />
+            <>
+              <VoteButton
+                kind="comment"
+                id={node.id}
+                voted={voted}
+                downvoted={downvoted}
+                points={points}
+                canVote={Boolean(viewerId) && !owns}
+                owns={owns}
+                loginHref={`/login?next=${encodeURIComponent(`/item/${postId}`)}`}
+                variant="inline"
+                onChange={(next) => {
+                  setVoted(next.voted);
+                  setDownvoted(next.downvoted);
+                  setPoints(next.points);
+                }}
+                onError={setError}
+              />
+              <VoteButton
+                kind="comment"
+                id={node.id}
+                direction="down"
+                voted={voted}
+                downvoted={downvoted}
+                points={points}
+                canVote={Boolean(viewerId) && !owns}
+                owns={owns}
+                loginHref={`/login?next=${encodeURIComponent(`/item/${postId}`)}`}
+                variant="inline"
+                onChange={(next) => {
+                  setVoted(next.voted);
+                  setDownvoted(next.downvoted);
+                  setPoints(next.points);
+                }}
+                onError={setError}
+              />
+            </>
           )}
           {collapsed && descendants > 0 ? <span>{descendants} more</span> : null}
         </div>

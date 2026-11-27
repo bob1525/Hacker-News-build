@@ -22,6 +22,7 @@ export function PostRow({
 }) {
   const [points, setPoints] = useState(post.points);
   const [voted, setVoted] = useState(post.voted);
+  const [downvoted, setDownvoted] = useState(post.downvoted);
   const [error, setError] = useState<string | null>(null);
   const domain = post.url ? siteLabel(post.url) : null;
   const discussion = `/item/${post.id}`;
@@ -31,7 +32,8 @@ export function PostRow({
   useEffect(() => {
     setPoints(post.points);
     setVoted(post.voted);
-  }, [post.id, post.points, post.voted]);
+    setDownvoted(post.downvoted);
+  }, [post.id, post.points, post.voted, post.downvoted]);
 
   const title = post.url ? (
     <a
@@ -98,20 +100,41 @@ export function PostRow({
   );
 
   const vote = (
-    <VoteButton
-      kind="post"
-      id={post.id}
-      voted={voted}
-      points={points}
-      canVote={Boolean(viewerId) && !owns}
-      owns={owns}
-      loginHref={loginHref}
-      onChange={(next) => {
-        setVoted(next.voted);
-        setPoints(next.points);
-      }}
-      onError={setError}
-    />
+    <div className="flex flex-col items-center">
+      <VoteButton
+        kind="post"
+        id={post.id}
+        voted={voted}
+        downvoted={downvoted}
+        points={points}
+        canVote={Boolean(viewerId) && !owns}
+        owns={owns}
+        loginHref={loginHref}
+        onChange={(next) => {
+          setVoted(next.voted);
+          setDownvoted(next.downvoted);
+          setPoints(next.points);
+        }}
+        onError={setError}
+      />
+      <VoteButton
+        kind="post"
+        id={post.id}
+        direction="down"
+        voted={voted}
+        downvoted={downvoted}
+        points={points}
+        canVote={Boolean(viewerId) && !owns}
+        owns={owns}
+        loginHref={loginHref}
+        onChange={(next) => {
+          setVoted(next.voted);
+          setDownvoted(next.downvoted);
+          setPoints(next.points);
+        }}
+        onError={setError}
+      />
+    </div>
   );
 
   if (variant === "detail") {

@@ -8,6 +8,7 @@ const sqliteFiles: Record<string, string> = {
   search: "/tmp/hn-search.db",
   collapse: "/tmp/hn-collapse.db",
   email: "/tmp/hn-email.db",
+  downvotes: "/tmp/hn-downvotes.db",
 };
 
 export function usesPostgres(env?: { DATABASE_URL?: string }): boolean {

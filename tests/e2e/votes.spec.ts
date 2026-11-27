@@ -11,7 +11,7 @@ test("toggles an upvote and restores the previous score", async ({ page }) => {
   const header = page.getByTestId("post-header");
   const points = header.getByTestId("post-points");
   const before = readPoints(await points.innerText());
-  const button = header.getByRole("button");
+  const button = header.getByRole("button", { name: /^(Upvote|Unvote)$/ });
   await button.click();
   await expect.poll(async () => readPoints(await points.innerText())).not.toBe(before);
   const mid = readPoints(await points.innerText());

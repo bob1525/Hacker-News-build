@@ -17,6 +17,7 @@ export type PostCard = {
   points: number;
   commentCount: number;
   voted: boolean;
+  downvoted: boolean;
   favorited: boolean;
 };
 
@@ -32,6 +33,7 @@ export type CommentDTO = {
   author: { id: string; username: string };
   points: number;
   voted: boolean;
+  downvoted: boolean;
   replies: CommentDTO[];
 };
 
