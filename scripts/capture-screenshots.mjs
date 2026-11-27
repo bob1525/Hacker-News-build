@@ -159,7 +159,15 @@ await shot(page, "reset-password");
 await page.goto(`${baseURL}/user/demo`);
 await page.getByLabel("New email").waitFor();
 await page.getByTestId("account-email").waitFor();
+await page.getByRole("button", { name: "Sign out other devices" }).waitFor();
 await shot(page, "email-change");
+await shot(page, "sign-out-others");
+const signOutResponse = page.waitForResponse((entry) => entry.request().method() === "POST");
+await page.getByRole("button", { name: "Sign out other devices" }).click();
+await signOutResponse;
+await page.getByText("Other devices were signed out. This browser stays signed in.").waitFor();
+await page.getByTestId("current-user").waitFor();
+await shot(page, "sign-out-others");
 
 const depthLines = [
   "Quartz clocks drift beside the river map.",

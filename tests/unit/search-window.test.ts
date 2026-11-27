@@ -37,6 +37,30 @@ describe("search window", () => {
     expect(new Set(seen).size).toBe(seen.length);
   });
 
+  it("walks deep pages without duplicates or gaps", () => {
+    const posts: SearchHit[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      const title = index % 3 === 0 ? "deeppage" : index % 3 === 1 ? `deeppage note ${index}` : "note";
+      const text = index % 3 === 2 ? "deeppage sits here" : "other";
+      posts.push(hit(`deep-${index}`, title, text, index, index));
+    }
+    const full = pageSearchResults(posts, "deeppage", 1, 30, now);
+    const seen: string[] = [];
+    let page = 1;
+    for (;;) {
+      const window = searchWindow(posts, "deeppage", page, 2, now);
+      const expected = full.items.slice((page - 1) * 2, page * 2).map((item) => item.id);
+      expect(window.items.map((item) => item.id)).toEqual(expected);
+      expect(window.total).toBe(full.total);
+      seen.push(...window.items.map((item) => item.id));
+      if (!window.hasMore) break;
+      page += 1;
+      expect(page).toBeLessThan(20);
+    }
+    expect(seen).toEqual(full.items.map((item) => item.id));
+    expect(new Set(seen).size).toBe(seen.length);
+  });
+
   it("uses searchRelevance for every feature group a candidate can hit", () => {
     const titles = ["needle", "needle extra", "wal needle", "plain", "needlewal", "§"];
     const texts = ["", "needle", "needle wal", "wal only", "extra needle text"];
@@ -128,5 +152,42 @@ describe("search window sql", () => {
     expect(both.total).toBe(2);
     expect(both.scored).toBe(1);
     expect(both.items.map((item) => item.id)).toEqual([phrase.id]);
+  });
+
+  it("keeps the same posts in order across deep pages", async () => {
+    const author = await db.user.create({
+      data: { username: "deeppage", email: "deeppage@example.com", passwordHash: "x" },
+    });
+    const created: SearchHit[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      const title = index % 3 === 0 ? "deeppage" : index % 3 === 1 ? `deeppage note ${index}` : "note";
+      const text = index % 3 === 2 ? "deeppage sits here" : "other";
+      const createdAt = new Date(now.getTime() - index * hour);
+      const post = await db.post.create({
+        data: withSearchFold({ title, text, authorId: author.id, createdAt }),
+      });
+      const points = index % 4 === 0 ? index + 1 : 0;
+      if (points > 0) {
+        await db.postVote.create({ data: { userId: author.id, postId: post.id, value: points } });
+      }
+      created.push({ id: post.id, title, text, points, createdAt });
+    }
+
+    const full = pageSearchResults(created, "deeppage", 1, 30, now);
+    const seen: string[] = [];
+    let page = 1;
+    for (;;) {
+      const loaded = await loadSearchWindow(db, { query: "deeppage", page, pageSize: 2, now });
+      const expected = full.items.slice((page - 1) * 2, page * 2).map((item) => item.id);
+      expect(loaded.total).toBe(full.items.length);
+      expect(loaded.items.map((item) => item.id)).toEqual(expected);
+      seen.push(...loaded.items.map((item) => item.id));
+      if (!loaded.hasMore) break;
+      page += 1;
+      expect(page).toBeLessThan(20);
+    }
+    expect(seen).toEqual(full.items.map((item) => item.id));
+    expect(new Set(seen).size).toBe(seen.length);
+    expect(page).toBeGreaterThan(2);
   });
 });

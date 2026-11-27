@@ -99,14 +99,23 @@ export function createNodemailerTransport(config: SmtpConfig): SmtpTransport {
   };
 }
 
+/** Production file logs keep the recipient and subject and drop the body, which can hold a token. */
+export function mailLogEntry(mail: OutboundMail, env: MailerEnv): string | null {
+  const logPath = env.MAIL_LOG_PATH?.trim();
+  if (!logPath) return null;
+  if (env.NODE_ENV === "production") {
+    return `${mail.to}\n${mail.subject}\n[body omitted]\n---\n`;
+  }
+  return `${mail.to}\n${mail.subject}\n${mail.text}\n---\n`;
+}
+
 function consoleMailer(env: MailerEnv): Mailer {
   return {
     async send(mail) {
       recorded.push(mail);
       const logPath = env.MAIL_LOG_PATH?.trim();
-      if (logPath) {
-        appendFileSync(logPath, `${mail.to}\n${mail.subject}\n${mail.text}\n---\n`);
-      }
+      const entry = mailLogEntry(mail, env);
+      if (logPath && entry) appendFileSync(logPath, entry);
       if (env.NODE_ENV !== "test") {
         console.info(`[mail] to=${mail.to} subject=${mail.subject}\n${mail.text}`);
       }

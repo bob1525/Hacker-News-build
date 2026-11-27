@@ -1,29 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-
-const mailLog = "/tmp/hn-e2e-mail.log";
-
-function clearMailLog() {
-  writeFileSync(mailLog, "");
-}
-
-async function latestToken(subject: string): Promise<string> {
-  let token = "";
-  await expect
-    .poll(() => {
-      try {
-        const blocks = readFileSync(mailLog, "utf8").split("\n---\n");
-        const block = [...blocks].reverse().find((entry) => entry.includes(subject));
-        const match = block?.match(/token=([^\s]+)/);
-        token = match?.[1] ? decodeURIComponent(match[1]) : "";
-        return token.length;
-      } catch {
-        return 0;
-      }
-    })
-    .toBeGreaterThan(20);
-  return token;
-}
+import { clearMailLog, latestToken, serverLogMark } from "./mail-log";
 
 test("shows an invalid password-reset or email-change link", async ({ page }) => {
   await page.goto("/reset-password");
@@ -49,11 +25,12 @@ test("resets a password from the emailed link and rejects the old one", async ({
   await expect(page.getByRole("link", { name: "login" })).toBeVisible();
 
   clearMailLog();
+  const resetMark = serverLogMark();
   await page.goto("/forgot-password");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "send reset link" }).click();
   await expect(page.getByText("If that account exists, a reset link was sent.")).toBeVisible();
-  const token = await latestToken("Reset your password");
+  const token = await latestToken("Reset your password", resetMark);
 
   await page.goto(`/reset-password?token=${encodeURIComponent(token)}`);
   await page.getByLabel("New password").fill("reset-secret-1");
@@ -87,6 +64,7 @@ test("keeps the old email until the change link is confirmed", async ({ page }) 
   await expect(page.getByTestId("current-user")).toHaveText(username);
 
   clearMailLog();
+  const changeMark = serverLogMark();
   await page.goto(`/user/${username}`);
   await expect(page.getByTestId("account-email")).toHaveText(email);
   await page.getByLabel("New email").fill(nextEmail);
@@ -94,7 +72,7 @@ test("keeps the old email until the change link is confirmed", async ({ page }) 
   await expect(page.getByText("Check the new inbox for a confirmation link.")).toBeVisible();
   await expect(page.getByTestId("account-email")).toHaveText(email);
 
-  const token = await latestToken("Confirm your new email");
+  const token = await latestToken("Confirm your new email", changeMark);
   await page.goto(`/change-email?token=${encodeURIComponent(token)}`);
   await page.getByRole("button", { name: "confirm new email" }).click();
   await expect(page.getByTestId("account-email")).toHaveText(nextEmail);
