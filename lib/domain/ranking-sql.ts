@@ -2,7 +2,8 @@ import type { PrismaClient } from "@prisma/client";
 import { sqlDialect, type SqlDialect } from "@/lib/sql-dialect";
 import type { FeedFilter } from "@/lib/types";
 
-const NEWTON_STEPS = 20;
+/** Fifth-root Newton steps. 20 drifts once x is far past 100000; 40 stays near 1e-12 through 1e12. */
+export const SQLITE_HOT_NEWTON_STEPS = 40;
 
 export type HotPage = {
   ids: string[];
@@ -11,12 +12,86 @@ export type HotPage = {
   total: number;
 };
 
+/** Shared Newton script. `source` must expose id, createdAt, points, and x. */
+function sqliteNewtonCte(source: string): string {
+  return `
+    pow AS (
+      SELECT
+        id,
+        createdAt,
+        points,
+        0 AS step,
+        x * x AS y,
+        x * x * x * x * x * x * x * x * x AS a
+      FROM ${source}
+      UNION ALL
+      SELECT
+        id,
+        createdAt,
+        points,
+        step + 1,
+        (4.0 * y + a / ((y * y) * (y * y))) / 5.0,
+        a
+      FROM pow
+      WHERE step < ${SQLITE_HOT_NEWTON_STEPS}
+    )
+  `;
+}
+
+/**
+ * The same Newton iteration pageHotPostIds uses, evaluated for one age term.
+ * Tests compare this with Math.pow(x, 1.8). It is not a second ranking formula.
+ */
+export async function sqliteHotExponent(db: PrismaClient, agePlusTwo: number): Promise<number> {
+  const rows = await db.$queryRawUnsafe<Array<{ y: number }>>(
+    `
+    WITH base AS (
+      SELECT 'x' AS id, 0 AS createdAt, 1 AS points, ? AS x
+    ),
+    ${sqliteNewtonCte("base")}
+    SELECT y AS y FROM pow WHERE step = ${SQLITE_HOT_NEWTON_STEPS}
+    `,
+    agePlusTwo,
+  );
+  return Number(rows[0]?.y);
+}
+
+/**
+ * Orders synthetic rows with the same Newton expression as pageHotPostIds.
+ * Ages past what a DateTime column can store are compared here, not in SQL
+ * as a second relevance or hot formula.
+ */
+export async function sqliteHotOrder(
+  db: PrismaClient,
+  rows: Array<{ id: string; points: number; agePlusTwo: number }>,
+): Promise<string[]> {
+  if (rows.length === 0) return [];
+  const values = rows.map(() => "(?, 0, ?, ?)").join(", ");
+  const params = rows.flatMap((row) => [row.id, row.points, row.agePlusTwo]);
+  const ranked = await db.$queryRawUnsafe<Array<{ id: string }>>(
+    `
+    WITH base(id, createdAt, points, x) AS (
+      VALUES ${values}
+    ),
+    ${sqliteNewtonCte("base")}
+    SELECT id
+    FROM pow
+    WHERE step = ${SQLITE_HOT_NEWTON_STEPS}
+    ORDER BY ((points - 1) * 1.0 / y) DESC, createdAt DESC, id DESC
+    `,
+    ...params,
+  );
+  return ranked.map((row) => row.id);
+}
+
 /**
  * Hot order in SQL.
  * Prisma's SQLite build has no power(), so (ageHours + 2) ^ 1.8 is the fifth
- * root of x^9, refined with 20 Newton steps. That stays within about 1e-15
- * relative error for x up to 100000 (roughly 11 years). Same points and the
- * same createdAt then sort by id descending.
+ * root of x^9, refined with SQLITE_HOT_NEWTON_STEPS Newton steps. Forty steps
+ * keep the relative error near 1e-12 for x up to 1e12. Twenty steps were
+ * already ~1e-15 through x = 100000, then drifted (about 5e-9 at 1e8 and
+ * about 6e-3 at 1e9). Same points and the same createdAt then sort by id
+ * descending. PostgreSQL uses power() instead of this iteration.
  */
 export async function pageHotPostIds(
   db: PrismaClient,
@@ -66,29 +141,10 @@ export async function pageHotPostIds(
         (CASE WHEN (? - createdAt) > 0 THEN (? - createdAt) ELSE 0 END) / 3600000.0 + 2.0 AS x
       FROM grouped
     ),
-    pow AS (
-      SELECT
-        id,
-        createdAt,
-        points,
-        0 AS step,
-        x * x AS y,
-        x * x * x * x * x * x * x * x * x AS a
-      FROM base
-      UNION ALL
-      SELECT
-        id,
-        createdAt,
-        points,
-        step + 1,
-        (4.0 * y + a / ((y * y) * (y * y))) / 5.0,
-        a
-      FROM pow
-      WHERE step < ${NEWTON_STEPS}
-    )
+    ${sqliteNewtonCte("base")}
     SELECT id
     FROM pow
-    WHERE step = ${NEWTON_STEPS}
+    WHERE step = ${SQLITE_HOT_NEWTON_STEPS}
     ORDER BY ((points - 1) * 1.0 / y) DESC, createdAt DESC, id DESC
     LIMIT ? OFFSET ?
     `,

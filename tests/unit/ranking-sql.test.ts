@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { sortByHot, sortByNewest } from "@/lib/domain/ranking";
-import { pageHotPostIds, pageNewestPostIds } from "@/lib/domain/ranking-sql";
+import { hotScore, sortByHot, sortByNewest } from "@/lib/domain/ranking";
+import { pageHotPostIds, pageNewestPostIds, sqliteHotExponent, sqliteHotOrder } from "@/lib/domain/ranking-sql";
 import { rankingBackend } from "@/lib/ranking-backend";
+import { sqlDialect } from "@/lib/sql-dialect";
 import { prepareTestDatabase } from "@/tests/helpers/database";
 const now = new Date("2026-11-10T12:00:00.000Z");
 const hour = 3_600_000;
@@ -41,6 +42,9 @@ describe("sql hot ranking", () => {
     for (let age = 1; age <= 5; age += 1) {
       ids[`page${age}`] = await post(`page-${age}`, new Date(now.getTime() - age * hour), 1);
     }
+    ids.vast = await post("vast", new Date(now.getTime() - 1_000_000 * hour), 4);
+    ids.vaster = await post("vaster", new Date(now.getTime() - 5_000_000 * hour), 30);
+    ids.vastest = await post("vastest", new Date(now.getTime() - 10_000_000 * hour), 9);
   }, 60_000);
 
   afterAll(async () => {
@@ -130,6 +134,38 @@ describe("sql hot ranking", () => {
     expect(pages[1]?.hasMore).toBe(false);
     expect(pages[0]?.total).toBe(2);
     expect(pages[1]?.page).toBe(2);
+  });
+
+  it("orders very old posts the same way as the in-memory hot score", async () => {
+    const selected = [ids.vast, ids.vaster, ids.vastest];
+    const ranked = await sqlIds(selected);
+    expect(ranked).toEqual(await memoryIds(selected));
+    expect(new Set(ranked)).toEqual(new Set(selected));
+  });
+
+  it("keeps the sqlite exponent close to the memory power when age is far past 100000 hours", async () => {
+    const samples = [2, 100_000, 1e8, 1e9, 1e12];
+    if (sqlDialect() === "postgresql") {
+      const selected = [ids.vast, ids.vaster, ids.vastest];
+      expect(await sqlIds(selected)).toEqual(await memoryIds(selected));
+      return;
+    }
+    for (const x of samples) {
+      const y = await sqliteHotExponent(db, x);
+      const truth = x ** 1.8;
+      expect(Math.abs(y / truth - 1)).toBeLessThan(1e-9);
+    }
+    const rows = [
+      { id: "close-old", points: 8, agePlusTwo: 1e9 },
+      { id: "close-new", points: 3, agePlusTwo: 5e8 },
+      { id: "mid", points: 6, agePlusTwo: 1e6 },
+      { id: "ancient", points: 4, agePlusTwo: 1e12 },
+    ];
+    const memory = [...rows].sort(
+      (a, b) => hotScore(b.points, b.agePlusTwo - 2) - hotScore(a.points, a.agePlusTwo - 2),
+    );
+    expect(await sqliteHotOrder(db, rows)).toEqual(memory.map((row) => row.id));
+    expect(memory.map((row) => row.id)).toEqual(["mid", "close-old", "close-new", "ancient"]);
   });
 
   it("selects memory by default and sql when asked", () => {

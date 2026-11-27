@@ -10,7 +10,7 @@ export async function login(page: Page, username: string, password = DEMO_PASSWO
 }
 
 export function readPoints(text: string): number {
-  const match = text.trim().match(/^(\d+)/);
+  const match = text.trim().match(/^(-?\d+)/);
   if (!match) throw new Error(`Could not read points from “${text}”`);
   return Number(match[1]);
 }

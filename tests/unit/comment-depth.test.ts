@@ -1,7 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MAX_COMMENT_DEPTH } from "@/lib/config";
-import { ancestorDepth, buildCommentTree, canReplyAtDepth, commentIndentPx, maxThreadDepth, replyDepthError } from "@/lib/domain/comments";
+import {
+  ancestorDepth,
+  buildCommentTree,
+  canReplyAtDepth,
+  commentDepthMark,
+  commentIndentPx,
+  commentIndentStepPx,
+  maxThreadDepth,
+  replyDepthError,
+} from "@/lib/domain/comments";
 import { prepareTestDatabase } from "@/tests/helpers/database";
 
 describe("comment depth cap", () => {
@@ -35,6 +44,24 @@ describe("comment depth cap", () => {
     const tree = buildCommentTree(rows);
     expect(maxThreadDepth(tree)).toBe(16);
     expect(tree[0]?.replies[0]?.id).toBe("n2");
+  });
+
+  it("marks depths 11 through 16 without widening the 120px indent", () => {
+    expect(commentDepthMark(10)).toBeNull();
+    expect(commentDepthMark(0)).toBeNull();
+    const marks = [11, 12, 13, 14, 15, 16].map((depth) => {
+      expect(commentIndentPx(depth)).toBe(120);
+      expect(commentIndentPx(depth)).toBe(commentIndentPx(10));
+      return commentDepthMark(depth);
+    });
+    expect(marks).toEqual(["11", "12", "13", "14", "15", "16"]);
+    expect(new Set(marks).size).toBe(6);
+    expect(commentIndentStepPx(1)).toBe(12);
+    expect(commentIndentStepPx(10)).toBe(12);
+    expect(commentIndentStepPx(11)).toBe(0);
+    expect(commentIndentStepPx(16)).toBe(0);
+    const total = Array.from({ length: 17 }, (_, depth) => commentIndentStepPx(depth)).reduce((sum, step) => sum + step, 0);
+    expect(total).toBe(120);
   });
 });
 

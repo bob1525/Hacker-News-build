@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { setCommentCollapsed } from "@/lib/actions/comment-collapse";
 import { deleteComment } from "@/lib/actions/comments";
 import { COLLAPSED_COMMENTS_KEY, parseCollapsedIds, toggleCollapsedId } from "@/lib/domain/collapsed-comments";
-import { canReplyAtDepth, commentIndentPx } from "@/lib/domain/comments";
+import { canReplyAtDepth, commentDepthMark, commentIndentStepPx } from "@/lib/domain/comments";
 import { plural } from "@/lib/domain/format";
 import { formatRelative } from "@/lib/domain/time";
 import type { CommentDTO } from "@/lib/types";
@@ -42,7 +42,8 @@ function CommentItem({
   const collapsed = collapsedIds.includes(node.id);
   const owns = viewerId === node.author.id;
   const descendants = descendantCount(node);
-  const indent = commentIndentPx(depth);
+  const indent = commentIndentStepPx(depth);
+  const depthMark = commentDepthMark(depth);
   const canReply = canReplyAtDepth(depth + 1);
 
   useEffect(() => {
@@ -82,6 +83,15 @@ function CommentItem({
           >
             {collapsed ? "[+]" : "[–]"}
           </button>
+          {depthMark ? (
+            <span
+              data-testid="comment-depth-mark"
+              title={`Nested ${depthMark} levels`}
+              className="rounded-sm border border-hn-orange px-1 font-mono text-[10px] leading-tight text-hn-orange"
+            >
+              {depthMark}
+            </span>
+          ) : null}
           <a href={`/user/${node.author.username}`} className="hover:underline">
             {node.author.username}
           </a>

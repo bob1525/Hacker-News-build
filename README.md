@@ -25,8 +25,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ## 功能
 
-- 注册、登录、退出。不能投票给自己的帖子或评论，可以取消已投的票。
+- 注册、登录、退出。邮箱验证是可选的，默认关闭（不设置 `REQUIRE_EMAIL_VERIFICATION`）。默认 `MAILER=console`，把信打在服务器日志里，持续集成不依赖付费邮件服务。生产可以改成 `MAILER=smtp`。注册时如果信发不出去，账号仍然留下并保持未验证，验证页可以重发。忘记密码可以要一封一小时内有效的重置信。不能投票给自己的帖子或评论，可以取消已投的票。
 - 发布帖子：标题，外加 URL、正文，或两者都有。标题以 `Show HN:` 开头会出现在 Show 页；不填 URL 的文字帖出现在 Ask 页。
+- 可以给别人的帖子和评论 upvote 或 downvote。页面上的分数按票数相加，可以是负数。热度排序把低于 0 的分数按 0 算。Karma 按帖子和评论分开累计，每一侧低于 0 时按 0 算。downvote 至少需要 1 点 karma（`DOWNVOTE_MIN_KARMA`）。
 - 首页按热度排序，New 页按时间排序，每页 30 条，底部有 More。
 - 热度使用经典公式 `(points - 1) / (ageHours + 2) ^ 1.8`。帖子分数相同则较新的在前。默认在内存里排序。`RANKING_BACKEND=sql` 把热度和 Newest 下推到 SQL，见 [RANKING_DB.md](RANKING_DB.md) 和 [RANKING_EXTEND.md](RANKING_EXTEND.md)。
 - 搜索标题和正文，忽略大小写；多个词需要同时命中。标题匹配优先于正文匹配。SQL 先筛出候选，再用同一套 `searchRelevance` 打分，只装载当前页，见 [SEARCH_SCALE.md](SEARCH_SCALE.md)。
@@ -34,10 +35,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ### 评论
 
-- 多层回复最多 16 层，可以折叠。第 16 层不再显示回复入口。缩进每层 12 像素，到 120 像素后不再变宽。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户写在这个浏览器的 `localStorage`（键 `hn-collapsed-comments`），关掉标签页后再打开仍在，见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
+- 多层回复最多 16 层，可以折叠。第 16 层不再显示回复入口。缩进每层 12 像素，到 120 像素后不再变宽。第 11 到 16 层缩进都停在 120 像素，作者名前面用橙色数字标出层数，把这几层彼此分开。已登录用户的折叠写入数据库，换浏览器后仍在。未登录用户写在这个浏览器的 `localStorage`（键 `hn-collapsed-comments`），关掉标签页后再打开仍在，见 [COMMENT_COLLAPSE.md](COMMENT_COLLAPSE.md)。
 - 排序规则：先按票数降序，票数相同再按时间升序（更早的在前）。票数和时间都相同则按 id 字典序。没有票的线程因此仍是从旧到新。
-- 登录用户可以给别人的评论 upvote，再点一次取消。不能给自己的评论投票，也不能给已软删除的评论投票。
-- Karma 是别人投给你的帖子票和评论票之和。自己投自己的不计。取消评论票会把对应 karma 减回去。软删除不撤销已经投出的票，karma 保持原样。
+- 登录用户可以给别人的评论 upvote 或 downvote，再点一次取消。不能给自己的评论投票，也不能给已软删除的评论投票。
+- Karma 是别人投给你的帖子票和评论票之和，downvote 记为负。自己投自己的不计。帖子侧和评论侧各自低于 0 时按 0 算。取消评论票会把对应 karma 减回去。软删除不撤销已经投出的票，karma 保持原样。
 - 作者可以在发表后 15 分钟内（含整 15 分钟）编辑自己的评论。超时、别人的评论、未登录或已删除都会被拒绝。编辑后页面显示 `edited`。
 - 作者可以随时软删除自己的评论。页面和接口对外显示「已删除」，回复留在树里，不能再编辑或投票。原文仍留在数据库里，不再发回浏览器。
 

@@ -18,6 +18,24 @@ export function commentIndentPx(depth: number): number {
 }
 
 /**
+ * Left margin for one nested row. Rows are nested, so this is the step that
+ * makes the margins add up to commentIndentPx. Past the cap the step is 0.
+ */
+export function commentIndentStepPx(depth: number): number {
+  if (!Number.isFinite(depth) || depth <= 0) return 0;
+  return commentIndentPx(depth) - commentIndentPx(depth - 1);
+}
+
+/**
+ * Depths 11–16 share the 120px indent. A numeric mark tells them apart
+ * without pushing the thread any wider.
+ */
+export function commentDepthMark(depth: number): string | null {
+  if (!Number.isFinite(depth) || depth < 11) return null;
+  return String(Math.floor(depth));
+}
+
+/**
  * Depth of a comment, counting itself as 1. Walks parents and stops on a cycle
  * or past the cap so a loop cannot run forever.
  */
