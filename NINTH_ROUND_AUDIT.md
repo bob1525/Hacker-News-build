@@ -28,7 +28,7 @@ npx playwright test
 | 2 重置密码 | [PASSWORD_RESET.md](PASSWORD_RESET.md) | `796fbf996709fc13451c34ba3abe444582375a23` | 5 个单元 |
 | 3 搜索折叠 | [SEARCH_UNICODE.md](SEARCH_UNICODE.md) | `e0794c358f812aa86bd607f0eb64421cfe4edd51` | 3 个单元 |
 | 4 遗留限制 | [LEFTOVER_HARDENING_V2.md](LEFTOVER_HARDENING_V2.md) | `0d1b5b5669de2aff98ace7b50fa58ed0f4979e89` | 3 个单元、3 个端到端 |
-| 5 本审计 | [NINTH_ROUND_AUDIT.md](NINTH_ROUND_AUDIT.md) | 本文件的提交 | 0 |
+| 5 本审计 | [NINTH_ROUND_AUDIT.md](NINTH_ROUND_AUDIT.md) | `7af6b374fa4bbd69a06f24e6845ee5d0c74eb548` | 0 |
 
 ### 阶段 1
 
@@ -80,7 +80,7 @@ SQLite 热度的牛顿迭代加到 40 步，和内存里的 `hotScore` 比过很
 
 ### 阶段 5
 
-本文件，加上 README 里第九轮五份文档的索引。没有新增测试。全量套件在阶段 4 提交上复跑过，见下一节。本审计提交只改文档。
+本文件，加上 README 里第九轮五份文档的索引。没有新增测试。全量套件在阶段 4 提交上复跑过，见下一节。`7af6b37` 只改文档，它的三个 job 记在「如何验证」下面。
 
 ## 如何验证
 
@@ -90,7 +90,15 @@ npx playwright test
 env -u AUTH_SECRET npm run typecheck
 ```
 
-CI 看 `test`、`postgres`、`redis` 三个 job。阶段 1 到 4 的运行都已成功，链接在上面各阶段里。含全部代码的头是阶段 4 的 `0d1b5b5669de2aff98ace7b50fa58ed0f4979e89`。本审计提交只改 README 索引和本文件。
+CI 看 `test`、`postgres`、`redis` 三个 job。阶段 1 到 4 的运行都已成功，链接在上面各阶段里。含全部代码的头是阶段 4 的 `0d1b5b5669de2aff98ace7b50fa58ed0f4979e89`。
+
+审计提交 `7af6b374fa4bbd69a06f24e6845ee5d0c74eb548` 只改了 README 索引和本文件。它的 push 运行 [46003601292](https://github.com/bob1525/Hacker-News-build/actions/runs/46003601292) 和 pull_request 运行 [46003610002](https://github.com/bob1525/Hacker-News-build/actions/runs/46003610002) 结论都是 success：
+
+| job | push | pull_request |
+| --- | --- | --- |
+| `test` | success [140521122815](https://github.com/bob1525/Hacker-News-build/actions/runs/46003601292/job/140521122815) | success [140521151763](https://github.com/bob1525/Hacker-News-build/actions/runs/46003610002/job/140521151763) |
+| `postgres` | success [140521122841](https://github.com/bob1525/Hacker-News-build/actions/runs/46003601292/job/140521122841) | success [140521152221](https://github.com/bob1525/Hacker-News-build/actions/runs/46003610002/job/140521152221) |
+| `redis` | success [140521122411](https://github.com/bob1525/Hacker-News-build/actions/runs/46003601292/job/140521122411) | success [140521152162](https://github.com/bob1525/Hacker-News-build/actions/runs/46003610002/job/140521152162) |
 
 ## 结果证据
 
