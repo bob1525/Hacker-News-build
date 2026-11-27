@@ -29,7 +29,7 @@ npm run test:e2e
 | 2 搜索可扩展性 | [SEARCH_SCALE.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SEARCH_SCALE.md) | `24892f1a5606356a0193b757efdfc640a43553c0` | 3 |
 | 3 评论折叠持久化 | [COMMENT_COLLAPSE.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/COMMENT_COLLAPSE.md) | `7528da037f4cdae8b12b90fa4b51f98bc3f014d1` | 4 |
 | 4 生产配置与启动校验 | [PRODUCTION_DEFAULTS.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/PRODUCTION_DEFAULTS.md) | `41a860fc75a80964a2cf6978936c1543ff734992`、`db40895b82595d069cec2f3d917346692ccf035b` | 3 |
-| 5 本审计 | [SEVENTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SEVENTH_ROUND_AUDIT.md) | `d2a18ec2461b7c2910eefaeda199ba42d370bdff` 与记录该次 CI 的后续提交 | 0 |
+| 5 本审计 | [SEVENTH_ROUND_AUDIT.md](https://github.com/bob1525/Hacker-News-build/blob/cursor/hacker-news-community-1102/SEVENTH_ROUND_AUDIT.md) | `d2a18ec2461b7c2910eefaeda199ba42d370bdff`、`5c09bbb477e04fdb7fbc04bf64cae22aa34aa8ef` | 0 |
 
 ### 阶段 1
 
