@@ -14,6 +14,7 @@ const sqliteFiles: Record<string, string> = {
   sessionRevoke: "/tmp/hn-session-revoke.db",
   sessionManage: "/tmp/hn-session-manage.db",
   sessionDevices: "/tmp/hn-session-devices.db",
+  sessionHousekeeping: "/tmp/hn-session-housekeeping.db",
   searchUnicode: "/tmp/hn-search-unicode.db",
   searchFold: "/tmp/hn-search-fold.db",
   searchCasefold: "/tmp/hn-search-casefold.db",

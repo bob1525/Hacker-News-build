@@ -41,7 +41,7 @@ export function DeviceList({ devices }: { devices: DeviceRow[] }) {
           <li key={device.id} data-testid="device-row" data-current={device.current ? "true" : "false"}>
             <span>
               {device.label}
-              {device.current ? " (this device)" : ""}
+              {device.current ? <span data-testid="current-device"> (current device)</span> : null}
             </span>
             <span className="ml-2 text-hn-sub">seen {device.seen}</span>
             <span className="ml-2">

@@ -28,7 +28,7 @@ export default async function UserPage({ params }: Params) {
   const profile = await getProfile(username.toLowerCase(), viewer?.id ?? null);
   const ownProfile = Boolean(viewer && profile && viewer.id === profile.user.id);
   const claims = ownProfile ? await readSessionClaimsFromCookie() : null;
-  const devices = ownProfile && viewer ? await listSessions(prisma, viewer.id, claims?.sessionId ?? null) : [];
+  const devices = ownProfile && viewer ? await listSessions(prisma, viewer.id, claims?.sessionId ?? null, new Date()) : [];
   if (!profile) notFound();
 
   return (

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
 import { DEMO_PASSWORD, DEMO_USERNAMES } from "@/lib/config";
+import { reauthMessageForClaims } from "@/lib/domain/session-device";
 import { safeNextPath } from "@/lib/domain/url";
 import { getCurrentUser } from "@/lib/auth";
+import { readSessionClaimsFromCookie } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Login" };
 
@@ -16,10 +18,16 @@ export default async function LoginPage({
   const nextPath = safeNextPath(next);
   const user = await getCurrentUser();
   if (user) redirect(nextPath);
+  const reauth = reauthMessageForClaims(await readSessionClaimsFromCookie());
 
   return (
     <section className="px-2 py-3">
       <h1 className="text-[14px]">Login</h1>
+      {reauth ? (
+        <p role="status" data-testid="reauth-notice" className="mt-2 text-[13px]">
+          {reauth}
+        </p>
+      ) : null}
       {reset === "1" ? <p className="mt-2 text-[13px]">Password updated. Log in with the new one.</p> : null}
       <p className="mt-1 max-w-md text-[12px] text-hn-sub">
         No account yet?{" "}

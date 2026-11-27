@@ -95,7 +95,7 @@ describe("one device can be revoked without touching the other", () => {
     ).toEqual({ ok: true });
     expect(sessionVersionMatches(laptopClaims!, 0)).toBe(true);
 
-    const listed = await listSessions(db, user.id, laptop.id);
+    const listed = await listSessions(db, user.id, laptop.id, now);
     expect(listed.map((row) => row.id)).toEqual([laptop.id]);
     expect(listed[0]?.current).toBe(true);
     expect(listed[0]?.label).toBe("Chrome on macOS");
@@ -150,7 +150,7 @@ describe("one device can be revoked without touching the other", () => {
     expect(rows.every((row) => row.revokedAt)).toBe(true);
     expect(rows.map((row) => row.id).sort()).toEqual([first.id, second.id].sort());
     const replacement = await openSession(db, user.id, "Mozilla/5.0 Chrome/120.0.0.0", now);
-    const listed = await listSessions(db, user.id, replacement.id);
+    const listed = await listSessions(db, user.id, replacement.id, now);
     expect(listed.map((row) => row.id)).toEqual([replacement.id]);
   });
 

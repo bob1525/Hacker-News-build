@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { computeKarma } from "@/lib/domain/karma";
 import { deviceSessionDecision } from "@/lib/domain/session-device";
 import { readSessionClaimsFromCookie } from "@/lib/session";
+import { SESSION_CLEANUP_BATCH, deleteStaleSessions, touchLastSeen } from "@/lib/session-devices";
 
 export type CurrentUser = {
   id: string;
@@ -33,24 +34,26 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const session = claims.sessionId
     ? await prisma.session.findUnique({
         where: { id: claims.sessionId },
-        select: { userId: true, revokedAt: true },
+        select: { userId: true, revokedAt: true, createdAt: true, lastSeenAt: true },
       })
     : null;
+  const now = new Date();
   const decision = deviceSessionDecision({
     claimsSessionId: claims.sessionId,
     claimsVersion: claims.sessionVersion,
     userVersion: user.sessionVersion,
     userId: user.id,
     session,
+    now,
   });
-  if (!decision.ok) return null;
-  if (claims.sessionId) {
-    const staleBefore = new Date(Date.now() - 60_000);
-    await prisma.session.updateMany({
-      where: { id: claims.sessionId, lastSeenAt: { lt: staleBefore } },
-      data: { lastSeenAt: new Date() },
-    });
+  if (!decision.ok) {
+    await deleteStaleSessions(prisma, now, { userId: user.id, limit: SESSION_CLEANUP_BATCH });
+    return null;
   }
+  if (claims.sessionId && session) {
+    await touchLastSeen(prisma, claims.sessionId, session.lastSeenAt, now);
+  }
+  await deleteStaleSessions(prisma, now, { userId: user.id, limit: SESSION_CLEANUP_BATCH });
   return {
     id: user.id,
     username: user.username,

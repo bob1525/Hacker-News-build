@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { assertAuthSecret } from "@/lib/auth-secret";
+import { SESSION_MAX_AGE_SECONDS } from "@/lib/config";
 
 function secretKey(): Uint8Array {
   const value = process.env.AUTH_SECRET;
@@ -36,7 +37,7 @@ export async function signSession(userId: string, sessionVersion = 0, sessionId?
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
     .sign(secretKey());
 }
 
